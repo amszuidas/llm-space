@@ -8,7 +8,7 @@ import {
   PlayCircleIcon,
   UserIcon,
 } from "lucide-react";
-import { memo, useCallback } from "react";
+import { memo, useCallback, useMemo } from "react";
 
 import { cn } from "@/lib/utils";
 import { useThreadStoreActions } from "@/stores/thread-store";
@@ -31,6 +31,14 @@ function _MessageListItemHeader({
 }) {
   const { run, removeMessage, toggleMessageRole, toggleMessageCollapsed } =
     useThreadStoreActions();
+  const runnable = useMemo(
+    () =>
+      message.role === "user" ||
+      (message.role === "assistant" &&
+        message.toolCalls &&
+        message.toolCalls.length > 0),
+    [message]
+  );
   const handleRun = useCallback(async () => {
     await run(message.id);
   }, [run, message.id]);
@@ -96,11 +104,13 @@ function _MessageListItemHeader({
         {message.role === "user" && (
           <AddImagesMenu messageId={message.id} disabled={readonly} />
         )}
-        <Tooltip content="Run from this message">
+        <Tooltip
+          content={runnable ? "Run from this message" : "No runnable content"}
+        >
           <Button
             variant="ghost"
             size="icon-sm"
-            disabled={readonly}
+            disabled={readonly || !runnable}
             onClick={handleRun}
           >
             <PlayCircleIcon className="size-4" />

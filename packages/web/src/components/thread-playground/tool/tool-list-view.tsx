@@ -86,7 +86,7 @@ function _ToolListItem({
         <Tooltip content="Remove tool">
           <button
             type="button"
-            className="text-muted-foreground hover:text-accent-foreground focus-visible:ring-ring/30 inline-flex h-full items-center rounded-r-md px-1.5 opacity-70 outline-none transition-opacity hover:opacity-100 focus-visible:ring-2"
+            className="text-muted-foreground hover:text-accent-foreground focus-visible:ring-ring/30 inline-flex h-full items-center rounded-r-md pl-1 pr-1 opacity-0 outline-none transition-opacity hover:opacity-100 focus-visible:ring-2 group-hover/tool:opacity-70"
             onClick={handleRemove}
           >
             <XIcon className="size-3" />
@@ -131,50 +131,36 @@ export function ToolListView({
 
   return (
     <>
-      <div className={cn("group flex w-full", className)}>
-        <div
-          ref={animationContainerRef}
-          className="flex min-w-0 grow flex-wrap gap-2"
-        >
-          {(!tools || tools.length === 0) && (
-            <Button
-              className="hover:bg-transparent! -ml-1 px-0"
-              variant="ghost"
-              size="sm"
-              disabled={readonly}
-              onClick={openAddDialog}
-            >
-              <PlusIcon className="size-3" />
-              Add tool
-            </Button>
-          )}
-          {tools?.map((t) => (
-            <ToolListItem
-              key={t.name}
-              tool={t}
-              readonly={readonly}
-              onEdit={openEditDialog}
-              onRemove={handleRemoveTool}
-            />
-          ))}
-        </div>
-        <div
+      <div
+        ref={animationContainerRef}
+        className={cn("group flex min-w-0 grow flex-wrap gap-2.5", className)}
+      >
+        {tools?.map((t) => (
+          <ToolListItem
+            key={t.name}
+            tool={t}
+            readonly={readonly}
+            onEdit={openEditDialog}
+            onRemove={handleRemoveTool}
+          />
+        ))}
+        <Button
           className={cn(
-            "flex shrink-0 items-center px-1 opacity-0 transition-opacity group-hover:opacity-100",
-            (readonly || !tools || tools.length === 0) && "invisible"
+            "hover:bg-transparent! -ml-1 px-0 transition-opacity group-hover:opacity-100",
+            readonly
+              ? "hidden"
+              : !tools || tools.length === 0
+                ? "opacity-50"
+                : "opacity-0"
           )}
+          variant="ghost"
+          size="sm"
+          disabled={readonly}
+          onClick={openAddDialog}
         >
-          <Tooltip content="Add tool">
-            <Button
-              size="icon-xs"
-              variant="ghost"
-              disabled={readonly}
-              onClick={openAddDialog}
-            >
-              <PlusIcon className="size-4" />
-            </Button>
-          </Tooltip>
-        </div>
+          <PlusIcon className="size-3" />
+          Add tool
+        </Button>
       </div>
       <ToolEditorDialog
         open={dialogOpen}

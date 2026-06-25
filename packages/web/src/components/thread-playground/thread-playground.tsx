@@ -88,7 +88,7 @@ function ThreadPlaygroundContent({
             }
           >
             <Button
-              className={cn("w-20 px-3 py-4", readonlyFromProps && "hidden")}
+              className={cn("w-20 px-3 py-3.5", readonlyFromProps && "hidden")}
               disabled={readonlyFromProps}
               onClick={status === "running" ? handleStop : handleRun}
             >
