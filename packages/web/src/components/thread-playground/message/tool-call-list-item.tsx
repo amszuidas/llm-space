@@ -39,7 +39,7 @@ export function ToolCallListItem({
         </div>
         <div className="flex w-full flex-col">
           <CodeEditor
-            className="px-0! max-h-96"
+            className="px-0! min-h-9.5 max-h-96"
             hideBorder
             hideFocusRing
             placeholder={`Enter the response of ${toolCall.input.name}()`}

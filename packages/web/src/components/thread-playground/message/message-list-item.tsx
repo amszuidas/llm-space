@@ -147,7 +147,7 @@ function _MessageListItem({
           />
           {message.content.length > 0 && (
             <CodeEditor
-              className="max-h-[40vh] w-full"
+              className="min-h-9.5 max-h-[40vh] w-full"
               autoFocus
               hideFocusRing
               hideBorder
