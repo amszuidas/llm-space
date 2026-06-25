@@ -55,7 +55,10 @@ const thread: Thread = {
 export default function HomePage() {
   return (
     <div className="h-screen w-screen">
-      <ThreadPlayground className="bg-background size-full shadow-lg" />
+      <ThreadPlayground
+        className="bg-background size-full shadow-lg"
+        initialValue={thread}
+      />
     </div>
   );
 }

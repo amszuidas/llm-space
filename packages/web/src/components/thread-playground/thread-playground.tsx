@@ -29,8 +29,29 @@ import { ToolListView } from "./tool/tool-list-view";
 
 export interface ThreadPlaygroundProps {
   className?: string;
-  initialThread?: Thread;
+  initialValue?: Thread;
   readonly?: boolean;
+}
+
+export function ThreadPlayground({
+  initialValue = _createBlankThread(),
+  ...props
+}: ThreadPlaygroundProps) {
+  const [store] = useState(() => createThreadStore(initialValue));
+  return (
+    <ThreadStoreContext.Provider value={store}>
+      <ThreadPlaygroundContent {...props} />
+    </ThreadStoreContext.Provider>
+  );
+}
+
+function _createBlankThread(): Thread {
+  return {
+    model: {
+      provider: "deepseek",
+      id: "deepseek-v4-flash",
+    },
+  };
 }
 
 function ThreadPlaygroundContent({
@@ -121,25 +142,4 @@ function ThreadPlaygroundContent({
       </ResizablePanelGroup>
     </div>
   );
-}
-
-export function ThreadPlayground({
-  initialThread = _createBlankThread(),
-  ...props
-}: ThreadPlaygroundProps) {
-  const [store] = useState(() => createThreadStore(initialThread));
-  return (
-    <ThreadStoreContext.Provider value={store}>
-      <ThreadPlaygroundContent {...props} />
-    </ThreadStoreContext.Provider>
-  );
-}
-
-function _createBlankThread(): Thread {
-  return {
-    model: {
-      provider: "deepseek",
-      id: "deepseek-v4-flash",
-    },
-  };
 }
