@@ -45,16 +45,17 @@ function _MessageListItemHeader({
   }, [toggleMessageCollapsed, message.id]);
   return (
     <header className="flex w-full shrink-0 items-center px-3 pt-2">
-      {!readonly && dragHandleProps && (
-        <Tooltip content="Drag to reorder">
-          <div
-            {...dragHandleProps}
-            className="text-muted-foreground hover:text-foreground -ml-3.5 flex shrink-0 cursor-grab items-center opacity-0 transition-opacity active:cursor-grabbing group-hover:opacity-100"
-          >
-            <GripVerticalIcon className="size-4" />
-          </div>
-        </Tooltip>
-      )}
+      <Tooltip content="Drag to reorder">
+        <div
+          {...dragHandleProps}
+          className={cn(
+            "text-muted-foreground hover:text-foreground -ml-3.5 flex shrink-0 cursor-grab items-center opacity-0 transition-opacity active:cursor-grabbing group-hover:opacity-100",
+            readonly || dragHandleProps ? "invisible" : ""
+          )}
+        >
+          <GripVerticalIcon className="size-4" />
+        </div>
+      </Tooltip>
       <div className="flex shrink-0 items-center">
         <Tooltip content="Click to toggle role">
           <Button
