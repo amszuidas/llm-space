@@ -1,10 +1,11 @@
 "use client";
 
 import type { Thread } from "@llm-space/core";
-import { PlayIcon } from "lucide-react";
+import { PlayIcon, Redo2Icon, Undo2Icon } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 
 import { cn } from "@/lib/utils";
+import { canRedo, canUndo } from "@/stores/thread-history";
 import {
   createThreadStore,
   ThreadStoreContext,
@@ -27,6 +28,7 @@ import { ModelConfigEditor } from "./model/model-config-editor";
 import { SystemPromptEditor } from "./prompt/system-prompt-editor";
 import { ToolListView } from "./tool/tool-list-view";
 import { useThreadPlaygroundEvents } from "./use-thread-playground-events";
+import { useUndoRedoShortcuts } from "./use-undo-redo-shortcuts";
 
 export interface ThreadPlaygroundProps {
   className?: string;
@@ -75,10 +77,13 @@ function ThreadPlaygroundContent({
   "initialValue" | "onChange" | "onStreamingStart" | "onStreamingEnd"
 >) {
   const status = useThreadStore((s) => s.status);
-  const { run, abort } = useThreadStoreActions();
+  const undoable = useThreadStore((s) => canUndo(s.changeHistory));
+  const redoable = useThreadStore((s) => canRedo(s.changeHistory));
+  const { run, abort, undo, redo } = useThreadStoreActions();
   const readonly = useMemo(() => {
     return readonlyFromProps || status === "running";
   }, [readonlyFromProps, status]);
+  useUndoRedoShortcuts(!readonly);
   const handleRun = useCallback(async () => {
     await run();
   }, []);
@@ -94,6 +99,33 @@ function ThreadPlaygroundContent({
       <header className="flex h-12 w-full shrink-0 items-center border-b">
         <div className="min-w-0 grow px-3">
           <TitleEditor className="w-96 max-w-full" readonly={readonly} />
+        </div>
+        <div
+          className={cn(
+            "flex items-center gap-0.5 px-1",
+            readonlyFromProps && "hidden"
+          )}
+        >
+          <Tooltip content="Undo">
+            <Button
+              variant="ghost"
+              size="icon-lg"
+              disabled={readonly || !undoable}
+              onClick={undo}
+            >
+              <Undo2Icon className="size-4" />
+            </Button>
+          </Tooltip>
+          <Tooltip content="Redo">
+            <Button
+              variant="ghost"
+              size="icon-lg"
+              disabled={readonly || !redoable}
+              onClick={redo}
+            >
+              <Redo2Icon className="size-4" />
+            </Button>
+          </Tooltip>
         </div>
         <div className="px-3">
           <Tooltip

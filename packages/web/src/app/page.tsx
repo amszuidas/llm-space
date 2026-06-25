@@ -6,7 +6,6 @@ import { useCallback } from "react";
 import { ThreadPlayground } from "@/components/thread-playground";
 
 const thread: Thread = {
-  title: "",
   model: {
     // provider: "doubao",
     // id: "doubao-seed-2.0-pro",
@@ -54,11 +53,15 @@ const thread: Thread = {
 };
 
 export default function HomePage() {
+  const handleChange = useCallback((thread: Thread) => {
+    console.info("thread changed", thread);
+  }, []);
   return (
     <div className="h-screen w-screen">
       <ThreadPlayground
         className="bg-background size-full shadow-lg"
         initialValue={thread}
+        onChange={handleChange}
       />
     </div>
   );

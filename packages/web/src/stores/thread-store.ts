@@ -21,6 +21,14 @@ import { createStore, useStore, type StoreApi } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
 import { useShallow } from "zustand/shallow";
 
+import {
+  createInitialHistory,
+  recordSnapshot,
+  redo as redoHistory,
+  undo as undoHistory,
+  type ChangeHistory,
+} from "./thread-history";
+
 const toolValidator = Compile(ToolSchema);
 
 export type ThreadStoreStatus = "idle" | "running";
@@ -30,8 +38,11 @@ export interface ThreadState {
   status: ThreadStoreStatus;
   abortController: AbortController | null;
   collapsedMessageIds: string[];
+  changeHistory: ChangeHistory;
 
   run(fromMessageId?: string): Promise<void>;
+  undo(): void;
+  redo(): void;
   appendMessage(): void;
   insertMessageBefore(beforeMessageId: string): void;
   moveMessage(fromIndex: number, toIndex: number): void;
@@ -63,7 +74,13 @@ export function createThreadStore(initialThread: Thread): ThreadStore {
       // --- internal helpers ---------------------------------------------------
 
       const patchThread = (partial: Partial<Thread>) => {
-        set({ thread: { ...get().thread, ...partial } });
+        const next = { ...get().thread, ...partial };
+        set({ thread: next });
+        // Streaming changes are folded into a single record by run(); skip them
+        // here so each chunk doesn't become its own undo step.
+        if (get().status !== "running") {
+          set({ changeHistory: recordSnapshot(get().changeHistory, next) });
+        }
       };
 
       const patchContext = (partial: Partial<Thread["context"]>) => {
@@ -143,6 +160,7 @@ export function createThreadStore(initialThread: Thread): ThreadStore {
         status: "idle",
         abortController: null,
         collapsedMessageIds: [],
+        changeHistory: createInitialHistory(initialThread),
 
         appendMessage() {
           const message = createUserMessage();
@@ -394,7 +412,32 @@ export function createThreadStore(initialThread: Thread): ThreadStore {
               status: "idle",
               abortController: null,
             });
+            // Fold the whole run (truncation + generated messages) into one
+            // undo step. No-op if the thread is unchanged.
+            set({
+              changeHistory: recordSnapshot(get().changeHistory, get().thread),
+            });
           }
+        },
+        undo() {
+          if (get().status === "running") {
+            return;
+          }
+          const result = undoHistory(get().changeHistory);
+          if (!result) {
+            return;
+          }
+          set({ thread: result.thread, changeHistory: result.history });
+        },
+        redo() {
+          if (get().status === "running") {
+            return;
+          }
+          const result = redoHistory(get().changeHistory);
+          if (!result) {
+            return;
+          }
+          set({ thread: result.thread, changeHistory: result.history });
         },
         abort() {
           const { status, abortController } = get();
@@ -427,6 +470,8 @@ export function useThreadStore<T>(selector: (s: ThreadState) => T): T {
 const selectActions = (s: ThreadState) => ({
   run: s.run,
   abort: s.abort,
+  undo: s.undo,
+  redo: s.redo,
 
   appendMessage: s.appendMessage,
   insertMessageBefore: s.insertMessageBefore,

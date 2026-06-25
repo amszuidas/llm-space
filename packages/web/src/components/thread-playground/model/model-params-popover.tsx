@@ -97,15 +97,6 @@ export function ModelParamsPopover({ readonly }: { readonly?: boolean }) {
   const reasoning = params.reasoning ?? DEFAULT_REASONING;
   const maxTokens = params.maxTokens;
 
-  const [draftTemperature, setDraftTemperature] = useState(temperature);
-  const isDraggingTemperatureRef = useRef(false);
-
-  useEffect(() => {
-    if (!isDraggingTemperatureRef.current) {
-      setDraftTemperature(temperature);
-    }
-  }, [temperature]);
-
   const [draftMaxTokens, setDraftMaxTokens] = useState(
     maxTokens !== undefined ? String(maxTokens) : ""
   );
@@ -163,23 +154,16 @@ export function ModelParamsPopover({ readonly }: { readonly?: boolean }) {
             <div className="space-y-2 pt-2">
               <div className="flex justify-end">
                 <span className="text-muted-foreground tabular-nums">
-                  {draftTemperature}
+                  {temperature}
                 </span>
               </div>
               <Slider
                 min={0}
                 max={2}
                 step={0.1}
-                value={[draftTemperature]}
+                value={[temperature]}
                 disabled={readonly}
                 onValueChange={([value]) => {
-                  if (value !== undefined) {
-                    isDraggingTemperatureRef.current = true;
-                    setDraftTemperature(value);
-                  }
-                }}
-                onValueCommit={([value]) => {
-                  isDraggingTemperatureRef.current = false;
                   if (value !== undefined) {
                     updateModelParams({ temperature: value });
                   }
