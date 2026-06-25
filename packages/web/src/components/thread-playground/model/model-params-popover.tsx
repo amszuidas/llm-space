@@ -2,7 +2,7 @@
 
 import { resolveModel, type ReasoningLevel } from "@llm-space/core";
 import { SlidersHorizontal } from "lucide-react";
-import { type ReactNode, useCallback, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
 import { useThreadStore, useThreadStoreActions } from "@/stores/thread-store";
@@ -97,6 +97,37 @@ export function ModelParamsPopover({ readonly }: { readonly?: boolean }) {
   const reasoning = params.reasoning ?? DEFAULT_REASONING;
   const maxTokens = params.maxTokens;
 
+  const [draftTemperature, setDraftTemperature] = useState(temperature);
+  const isDraggingTemperatureRef = useRef(false);
+
+  useEffect(() => {
+    if (!isDraggingTemperatureRef.current) {
+      setDraftTemperature(temperature);
+    }
+  }, [temperature]);
+
+  const [draftMaxTokens, setDraftMaxTokens] = useState(
+    maxTokens !== undefined ? String(maxTokens) : ""
+  );
+  const isMaxTokensFocusedRef = useRef(false);
+
+  useEffect(() => {
+    if (!isMaxTokensFocusedRef.current) {
+      setDraftMaxTokens(maxTokens !== undefined ? String(maxTokens) : "");
+    }
+  }, [maxTokens]);
+
+  const commitMaxTokens = useCallback(() => {
+    const committed =
+      maxTokens !== undefined ? String(maxTokens) : "";
+    if (draftMaxTokens !== committed) {
+      updateModelParams({
+        maxTokens:
+          draftMaxTokens === "" ? undefined : Number(draftMaxTokens),
+      });
+    }
+  }, [draftMaxTokens, maxTokens, updateModelParams]);
+
   return (
     <div
       className={cn(
@@ -132,16 +163,23 @@ export function ModelParamsPopover({ readonly }: { readonly?: boolean }) {
             <div className="space-y-2 pt-2">
               <div className="flex justify-end">
                 <span className="text-muted-foreground tabular-nums">
-                  {temperature}
+                  {draftTemperature}
                 </span>
               </div>
               <Slider
                 min={0}
                 max={2}
                 step={0.1}
-                value={[temperature]}
+                value={[draftTemperature]}
                 disabled={readonly}
                 onValueChange={([value]) => {
+                  if (value !== undefined) {
+                    isDraggingTemperatureRef.current = true;
+                    setDraftTemperature(value);
+                  }
+                }}
+                onValueCommit={([value]) => {
+                  isDraggingTemperatureRef.current = false;
                   if (value !== undefined) {
                     updateModelParams({ temperature: value });
                   }
@@ -165,13 +203,22 @@ export function ModelParamsPopover({ readonly }: { readonly?: boolean }) {
               type="number"
               min={1}
               max={resolvedModel?.maxTokens}
-              value={maxTokens ?? ""}
+              value={draftMaxTokens}
               disabled={readonly}
               onChange={(event) => {
-                const value = event.target.value;
-                updateModelParams({
-                  maxTokens: value === "" ? undefined : Number(value),
-                });
+                setDraftMaxTokens(event.target.value);
+              }}
+              onFocus={() => {
+                isMaxTokensFocusedRef.current = true;
+              }}
+              onBlur={() => {
+                isMaxTokensFocusedRef.current = false;
+                commitMaxTokens();
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.currentTarget.blur();
+                }
               }}
             />
           </ParamField>
