@@ -24,7 +24,10 @@ function _SystemPromptEditor({
   );
   return (
     <CodeEditor
-      className={cn("", className)}
+      className={cn(
+        "hover:border-accent-foreground/33 transition-[border-color]",
+        className
+      )}
       value={systemPrompt ?? ""}
       language="markdown"
       readonly={readonly}

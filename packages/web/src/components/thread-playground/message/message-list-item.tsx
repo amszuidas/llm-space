@@ -113,7 +113,7 @@ function _MessageListItem({
   return (
     <div
       className={cn(
-        "bg-(--textarea) focus-within:border-ring group relative flex size-full flex-col items-center rounded-lg border transition-[padding-bottom]",
+        "bg-(--textarea) hover:border-accent-foreground/33 focus-within:border-ring! group relative flex size-full flex-col items-center rounded-lg border transition-[padding-bottom,border-color]",
         collapsed && "pb-2.5",
         className
       )}

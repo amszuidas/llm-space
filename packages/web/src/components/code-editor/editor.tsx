@@ -145,7 +145,7 @@ function _CodeEditor(
       className={cn(
         "flex cursor-text flex-col overflow-hidden rounded-md border px-1 transition-opacity",
         "bg-(--textarea)",
-        !hideFocusRing && "focus-within:border-ring",
+        !hideFocusRing && "focus-within:border-ring!",
         hideBorder && "border-transparent",
         readonly && "opacity-67",
         className
