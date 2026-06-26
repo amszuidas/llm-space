@@ -2,7 +2,7 @@
 
 import type { Thread } from "@llm-space/core";
 import { PlayIcon, Redo2Icon, Undo2Icon } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
 import { canRedo, canUndo } from "@/stores/thread-history";
@@ -15,6 +15,7 @@ import {
 
 import { Tooltip } from "../tooltip";
 import { Button } from "../ui/button";
+import { Kbd, KbdGroup } from "../ui/kbd";
 import {
   ResizableHandle,
   ResizablePanel,
@@ -27,8 +28,8 @@ import { TitleEditor } from "./misc/title-editor";
 import { ModelConfigEditor } from "./model/model-config-editor";
 import { SystemPromptEditor } from "./prompt/system-prompt-editor";
 import { ToolListView } from "./tool/tool-list-view";
+import { useShortcuts } from "./use-shortcuts";
 import { useThreadPlaygroundEvents } from "./use-thread-playground-events";
-import { useUndoRedoShortcuts } from "./use-undo-redo-shortcuts";
 
 export interface ThreadPlaygroundProps {
   className?: string;
@@ -76,6 +77,7 @@ function ThreadPlaygroundContent({
   ThreadPlaygroundProps,
   "initialValue" | "onChange" | "onStreamingStart" | "onStreamingEnd"
 >) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const status = useThreadStore((s) => s.status);
   const undoable = useThreadStore((s) => canUndo(s.changeHistory));
   const redoable = useThreadStore((s) => canRedo(s.changeHistory));
@@ -83,7 +85,6 @@ function ThreadPlaygroundContent({
   const readonly = useMemo(() => {
     return readonlyFromProps || status === "running";
   }, [readonlyFromProps, status]);
-  useUndoRedoShortcuts(!readonly);
   const handleRun = useCallback(async () => {
     await run();
   }, []);
@@ -94,8 +95,14 @@ function ThreadPlaygroundContent({
       // Ignored
     }
   }, []);
+  const handleShortcuts = useShortcuts({ readonly: readonlyFromProps });
   return (
-    <div className={cn("flex flex-col overflow-hidden", className)}>
+    <div
+      ref={containerRef}
+      className={cn("flex flex-col overflow-hidden", className)}
+      tabIndex={0}
+      onKeyDownCapture={handleShortcuts}
+    >
       <header className="flex h-12 w-full shrink-0 items-center border-b">
         <div className="min-w-0 grow px-3">
           <TitleEditor className="w-96 max-w-full" readonly={readonly} />
@@ -131,8 +138,8 @@ function ThreadPlaygroundContent({
           <Tooltip
             content={
               status === "running"
-                ? "Stop the running thread"
-                : "Run the thread"
+                ? "Stop the running thread "
+                : "Run the thread "
             }
           >
             <Button

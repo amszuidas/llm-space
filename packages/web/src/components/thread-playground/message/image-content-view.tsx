@@ -61,12 +61,6 @@ function _ImageContentView({
         onClick={handleOpenPreview}
         role="button"
         tabIndex={0}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            handleOpenPreview();
-          }
-        }}
       >
         <img
           src={imageSrc}
