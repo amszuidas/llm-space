@@ -25,17 +25,18 @@ import {
 import { Spinner } from "../ui/spinner";
 
 import { MessageListView } from "./message/message-list-view";
+import { ThreadPlaygroundSkeleton } from "./misc/skeleton";
 import { TitleEditor } from "./misc/title-editor";
 import { ModelConfigEditor } from "./model/model-config-editor";
 import { SystemPromptEditor } from "./prompt/system-prompt-editor";
-import { RunHistoryList } from "./run-history-list";
+import { RunHistoryListView } from "./run-history-list-view";
 import { ToolListView } from "./tool/tool-list-view";
 import { useShortcuts } from "./use-shortcuts";
 import { useThreadPlaygroundEvents } from "./use-thread-playground-events";
 
 export interface ThreadPlaygroundProps {
   className?: string;
-  initialValue?: Thread;
+  initialValue: Thread;
   readonly?: boolean;
   // eslint-disable-next-line no-unused-vars
   onChange?: (thread: Thread) => void;
@@ -44,6 +45,30 @@ export interface ThreadPlaygroundProps {
 }
 
 export function ThreadPlayground({
+  loading,
+  initialValue,
+  className,
+  ...props
+}: Omit<ThreadPlaygroundProps, "initialValue"> & {
+  loading?: boolean;
+  initialValue?: Thread | null;
+}) {
+  if (loading) {
+    return <ThreadPlaygroundSkeleton className={className} />;
+  }
+  if (!initialValue) {
+    throw new Error("initialValue is required when not loading");
+  }
+  return (
+    <_ThreadPlayground
+      className={className}
+      initialValue={initialValue}
+      {...props}
+    />
+  );
+}
+
+function _ThreadPlayground({
   initialValue = _createBlankThread(),
   onChange,
   onStreamingStart,
@@ -158,7 +183,6 @@ function ThreadPlaygroundContent({
                   variant="ghost"
                   size="icon-lg"
                   aria-expanded={historyOpen}
-                  disabled={readonly}
                   onClick={toggleHistory}
                 >
                   <HistoryIcon className="size-4" />
@@ -250,7 +274,7 @@ function ThreadPlaygroundContent({
             setHistoryOpen(size.inPixels > 0);
           }}
         >
-          <RunHistoryList />
+          <RunHistoryListView />
         </ResizablePanel>
       </ResizablePanelGroup>
     </div>

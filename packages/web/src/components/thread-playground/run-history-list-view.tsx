@@ -1,11 +1,11 @@
-import { useAutoAnimate } from "@formkit/auto-animate/react";
 import type { Thread } from "@llm-space/core";
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 import { format } from "timeago.js";
 
 import { cn } from "@/lib/utils";
 import { useThreadStore, useThreadStoreActions } from "@/stores/thread-store";
 
+import { useAutoAnimation } from "../../lib/use-auto-animation";
 import { Item, ItemContent, ItemDescription, ItemGroup } from "../ui/item";
 
 /** A short summary of a run's resulting thread, derived from its last message. */
@@ -31,8 +31,8 @@ function _summarizeRun(thread: Thread): string {
   return text || "Empty message";
 }
 
-export function RunHistoryList() {
-  const [containerRef] = useAutoAnimate();
+function _RunHistoryListView() {
+  const [containerRef] = useAutoAnimation();
   const runHistory = useThreadStore((s) => s.runHistory);
   const { restoreThread } = useThreadStoreActions();
   const runs = useMemo(() => runHistory.slice().reverse(), [runHistory]);
@@ -80,3 +80,5 @@ export function RunHistoryList() {
     </div>
   );
 }
+
+export const RunHistoryListView = memo(_RunHistoryListView);

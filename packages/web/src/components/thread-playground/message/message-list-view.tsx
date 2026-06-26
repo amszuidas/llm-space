@@ -1,4 +1,3 @@
-import { useAutoAnimate } from "@formkit/auto-animate/react";
 import {
   DragDropContext,
   Draggable,
@@ -20,6 +19,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useThreadStore, useThreadStoreActions } from "@/stores/thread-store";
+
+import { useAutoAnimation } from "../../../lib/use-auto-animation";
 
 import { MessageListItem } from "./message-list-item";
 
@@ -95,7 +96,7 @@ function DroppableMessageList({
   readonly: boolean;
   collapsedMessageIds: string[];
 }) {
-  const [animationContainerRef, enableAnimations] = useAutoAnimate({
+  const [animationContainerRef, enableAnimations] = useAutoAnimation({
     duration: 150,
   });
   const droppableInnerRef = useRef(droppableProvided.innerRef);
@@ -103,14 +104,17 @@ function DroppableMessageList({
 
   useEffect(() => {
     const enabled = !readonly && !dragging;
-    if (enabled) {
-      setTimeout(() => {
-        enableAnimations(enabled);
-      }, 0);
-    } else {
+    if (!enabled) {
       enableAnimations(false);
+      return;
     }
-  }, [enableAnimations, readonly]);
+    const frameId = requestAnimationFrame(() => {
+      enableAnimations(true);
+    });
+    return () => {
+      cancelAnimationFrame(frameId);
+    };
+  }, [enableAnimations, readonly, dragging]);
 
   const setContainerRef = useCallback(
     (node: HTMLDivElement | null) => {

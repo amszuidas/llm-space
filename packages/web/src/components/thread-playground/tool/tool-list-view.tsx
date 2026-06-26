@@ -1,6 +1,5 @@
 "use client";
 
-import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { type FunctionTool } from "@llm-space/core";
 import { PlusIcon, SquareFunction, XIcon } from "lucide-react";
 import React, { memo, useCallback, useMemo, useState } from "react";
@@ -8,6 +7,7 @@ import React, { memo, useCallback, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useThreadStore, useThreadStoreActions } from "@/stores/thread-store";
 
+import { useAutoAnimation } from "../../../lib/use-auto-animation";
 import { Tooltip } from "../../tooltip";
 import { Button } from "../../ui/button";
 
@@ -110,7 +110,7 @@ export function ToolListView({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingTool, setEditingTool] = useState<FunctionTool | null>(null);
 
-  const [animationContainerRef] = useAutoAnimate({ duration: 150 });
+  const [animationContainerRef] = useAutoAnimation({ duration: 150 });
 
   const openAddDialog = useCallback(() => {
     setEditingTool(null);
