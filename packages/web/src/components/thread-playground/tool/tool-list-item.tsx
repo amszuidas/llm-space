@@ -4,6 +4,8 @@ import { type FunctionTool } from "@llm-space/core";
 import { SquareFunction, XIcon } from "lucide-react";
 import React, { memo, useCallback, useMemo } from "react";
 
+import { cn } from "@/lib/utils";
+
 import { Tooltip } from "../../tooltip";
 
 function _ToolListItem({
@@ -77,17 +79,19 @@ function _ToolListItem({
           <span className="font-mono">{tool.name}</span>
         </button>
       </Tooltip>
-      {!readonly && (
-        <Tooltip content="Remove tool">
-          <button
-            type="button"
-            className="text-muted-foreground hover:text-accent-foreground focus-visible:ring-ring/30 inline-flex h-full items-center rounded-r-md pl-1 pr-1 opacity-0 outline-none transition-opacity hover:opacity-100 focus-visible:ring-2 group-hover/tool:opacity-70"
-            onClick={handleRemove}
-          >
-            <XIcon className="size-3" />
-          </button>
-        </Tooltip>
-      )}
+      <Tooltip content="Remove tool">
+        <button
+          type="button"
+          disabled={readonly}
+          className={cn(
+            "text-muted-foreground hover:text-accent-foreground focus-visible:ring-ring/30 inline-flex h-full items-center rounded-r-md pl-1 pr-1 opacity-0 outline-none transition-opacity hover:opacity-100 focus-visible:ring-2 group-hover/tool:opacity-70",
+            readonly ? "opacity-0!" : "opacity-100"
+          )}
+          onClick={handleRemove}
+        >
+          <XIcon className="size-3" />
+        </button>
+      </Tooltip>
     </div>
   );
 }
