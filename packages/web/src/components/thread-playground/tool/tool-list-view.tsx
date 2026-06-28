@@ -61,12 +61,8 @@ export function ToolListView({
         ))}
         <Button
           className={cn(
-            "hover:bg-transparent! -ml-1 px-0 transition-opacity group-hover:opacity-100",
-            readonly
-              ? "opacity-0!"
-              : !tools || tools.length === 0
-                ? "opacity-50"
-                : "opacity-0"
+            "hover:bg-transparent! -ml-1 px-0 transition-opacity",
+            readonly ? "opacity-30!" : "opacity-50"
           )}
           variant="ghost"
           size="sm"

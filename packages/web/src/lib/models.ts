@@ -41,6 +41,9 @@ function setupModels() {
         input: ["text", "image"],
         contextWindow: 262144,
         maxTokens: 262144,
+        compat: {
+          supportsDeveloperRole: false,
+        },
         cost: {
           input: 0,
           output: 0,
@@ -58,6 +61,9 @@ function setupModels() {
         input: ["text", "image"],
         contextWindow: 262144,
         maxTokens: 262144,
+        compat: {
+          supportsDeveloperRole: false,
+        },
         cost: {
           input: 0,
           output: 0,
@@ -75,6 +81,9 @@ function setupModels() {
         input: ["text", "image"],
         contextWindow: 262144,
         maxTokens: 262144,
+        compat: {
+          supportsDeveloperRole: false,
+        },
         cost: {
           input: 0,
           output: 0,
@@ -103,6 +112,9 @@ function setupModels() {
         input: ["text", "image"],
         contextWindow: 262144,
         maxTokens: 262144,
+        compat: {
+          supportsDeveloperRole: false,
+        },
         cost: {
           input: 0,
           output: 0,
@@ -120,6 +132,9 @@ function setupModels() {
         input: ["text", "image"],
         contextWindow: 262144,
         maxTokens: 262144,
+        compat: {
+          supportsDeveloperRole: false,
+        },
         cost: {
           input: 0,
           output: 0,
@@ -137,6 +152,9 @@ function setupModels() {
         input: ["text"],
         contextWindow: 1000000,
         maxTokens: 384000,
+        compat: {
+          supportsDeveloperRole: false,
+        },
         cost: {
           input: 0,
           output: 0,
@@ -154,6 +172,9 @@ function setupModels() {
         input: ["text"],
         contextWindow: 1000000,
         maxTokens: 384000,
+        compat: {
+          supportsDeveloperRole: false,
+        },
         cost: {
           input: 0,
           output: 0,
@@ -171,6 +192,9 @@ function setupModels() {
         input: ["text"],
         contextWindow: 1000000,
         maxTokens: 131072,
+        compat: {
+          supportsDeveloperRole: false,
+        },
         cost: {
           input: 0,
           output: 0,
@@ -188,6 +212,9 @@ function setupModels() {
         input: ["text", "image"],
         contextWindow: 262144,
         maxTokens: 262144,
+        compat: {
+          supportsDeveloperRole: false,
+        },
         cost: {
           input: 0,
           output: 0,
@@ -205,6 +232,9 @@ function setupModels() {
         input: ["text", "image"],
         contextWindow: 512000,
         maxTokens: 128000,
+        compat: {
+          supportsDeveloperRole: false,
+        },
         cost: {
           input: 0,
           output: 0,
