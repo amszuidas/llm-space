@@ -55,8 +55,14 @@ export function reduceMessages(
         streamingMessage,
         content
       );
-    case "message_end":
-      return { type: "message_end", message: streamingMessage!, content: [] };
+    case "message_end": {
+      const message = streamingMessage!;
+      const finalMessage =
+        message.content.length === 0
+          ? { ...message, content: [{ type: "text" as const, text: "" }] }
+          : message;
+      return { type: "message_end", message: finalMessage, content: [] };
+    }
     case "tool_execution_end":
       return _createUpdateMessageEvent(
         _replaceToolCall(streamingMessage!, event.toolCallId, (toolCall) => ({
