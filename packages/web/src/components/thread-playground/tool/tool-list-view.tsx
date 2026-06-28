@@ -63,7 +63,7 @@ export function ToolListView({
           className={cn(
             "hover:bg-transparent! -ml-1 px-0 transition-opacity group-hover:opacity-100",
             readonly
-              ? "hidden"
+              ? "opacity-0!"
               : !tools || tools.length === 0
                 ? "opacity-50"
                 : "opacity-0"

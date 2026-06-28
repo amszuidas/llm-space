@@ -40,7 +40,7 @@ export function ModelSelector({
 }: {
   value: ModelConfig;
   readonly?: boolean;
-   
+
   onOpenChange?: (open: boolean) => void;
 }) {
   const providers = useModels();
@@ -106,7 +106,7 @@ export function ModelSelector({
           "bg-transparent! h-6! hover:bg-secondary! group/model-select w-75 border-0 font-mono",
           !readonly && "cursor:pointer hover:bg-secondary"
         )}
-        triggerClassName="opacity-0 group-hover/model-select:opacity-100"
+        triggerClassName="opacity-0! group-hover/model-select:opacity-100"
         placeholder="Select a model"
         disabled={readonly}
       />
