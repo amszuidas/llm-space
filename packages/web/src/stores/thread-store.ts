@@ -233,8 +233,9 @@ export function createThreadStore(initialThread: Thread): ThreadStore {
           });
         },
         updateModel(model: Pick<ModelConfig, "id" | "provider">) {
+          const current = get().thread.model;
           patchThread({
-            model: { provider: model.provider, id: model.id },
+            model: { ...current, provider: model.provider, id: model.id },
           });
         },
         updateMessageTextContent(id: string, text: string) {
