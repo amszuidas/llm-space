@@ -54,11 +54,11 @@ function _CodeEditor(
     streaming?: boolean;
     value: string;
     readonly?: boolean;
-     
+
     onChange?: (value: string) => void;
-     
+
     onKeyDown?: (e: KeyboardEvent) => void;
-     
+
     onPaste?: (e: ClipboardEvent) => void;
   },
   ref: React.ForwardedRef<CodeEditorHandle>
@@ -150,14 +150,6 @@ function _CodeEditor(
         readonly && "opacity-67",
         className
       )}
-      // Enforce read-only-while-running at the wrapper level via `inert` instead
-      // of CodeMirror's `readOnly` prop. `@uiw/react-codemirror` lists `readOnly`
-      // in the dependency array of an effect that dispatches a full
-      // `StateEffect.reconfigure` (rebuilds every extension + re-parses the doc).
-      // With ~100 editors mounted, toggling `readOnly` on a status change fired
-      // ~100 synchronous reconfigures/reflows — the bulk of the "other time"
-      // slowdown. `inert` blocks interaction without touching the editor config.
-      inert={readonly}
     >
       <CodeMirror
         className={cn(
@@ -169,6 +161,7 @@ function _CodeEditor(
         basicSetup={BASIC_SETUP}
         placeholder={placeholder}
         extensions={extensions}
+        readOnly={readonly}
         value={draft}
         onChange={handleChange}
         onBlur={handleBlur}
