@@ -137,7 +137,7 @@ export function ModelParamsPopover({
     <div
       className={cn(
         cn(
-          "flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100",
+          "flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100",
           popoverOpen && "opacity-100"
         ),
         readonly && "invisible"
