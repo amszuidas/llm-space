@@ -90,7 +90,6 @@ function _createUpdateMessageEvent(
 function _replaceToolCall(
   message: AssistantMessage,
   toolCallId: string,
-  // eslint-disable-next-line no-unused-vars
   updater: (toolCall: AssistantToolCall) => AssistantToolCall
 ): AssistantMessage {
   return {

@@ -135,7 +135,7 @@ function _convertToAgentTools(
         label: tool.name,
         description: tool.description,
         parameters: tool.parameters,
-        // eslint-disable-next-line no-unused-vars, @typescript-eslint/no-unused-vars
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         async execute(toolCallId, params) {
           if (stepByStep) {
             return Promise.resolve({

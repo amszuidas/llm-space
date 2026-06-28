@@ -102,7 +102,7 @@ export default defineConfig([
         },
       ],
       "no-console": ["warn", { allow: ["info", "warn", "error"] }],
-      "no-unused-vars": "warn",
+      "no-unused-vars": "off",
       "react/react-in-jsx-scope": "off",
     },
   },
