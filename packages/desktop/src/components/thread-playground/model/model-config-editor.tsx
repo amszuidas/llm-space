@@ -2,7 +2,8 @@
 
 import { useModel } from "@/components/model-provider";
 import { cn } from "@/lib/utils";
-import { useThreadStore } from "@/stores/thread-store";
+
+import { useThreadStore } from "../stores";
 
 import { ModelParamsPopover } from "./model-params-popover";
 import { ModelSelector } from "./model-selector";

@@ -1,9 +1,8 @@
 import type { ToolCall, ToolCallInput } from "@llm-space/core";
 import { memo, useCallback } from "react";
 
-import { useThreadStoreActions } from "@/stores/thread-store";
-
 import { CodeEditor } from "../../code-editor";
+import { useThreadStoreActions } from "../stores";
 
 export function ToolCallListItem({
   messageId,
@@ -30,7 +29,7 @@ export function ToolCallListItem({
     [handleRun]
   );
   return (
-    <div className="bg-foreground/4 flex w-full flex-col gap-2 rounded-md px-3 pb-3 pt-2 shadow-md">
+    <div className="bg-foreground/4 flex w-full flex-col gap-2 rounded-md px-3 pt-2 pb-3 shadow-md">
       <ToolCallInputView input={toolCall.input} />
       <hr />
       <div className="flex w-full flex-col gap-1">
@@ -39,7 +38,7 @@ export function ToolCallListItem({
         </div>
         <div className="flex w-full flex-col">
           <CodeEditor
-            className="px-0! min-h-9.5 max-h-96"
+            className="max-h-96 min-h-9.5 px-0!"
             hideBorder
             hideFocusRing
             placeholder={`Enter the response of ${toolCall.input.name}()`}

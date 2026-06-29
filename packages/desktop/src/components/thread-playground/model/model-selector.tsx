@@ -3,7 +3,9 @@
 import { type ModelConfig } from "@llm-space/core";
 import { useCallback, useMemo, useRef } from "react";
 
-import { useModels } from "@/components/model-provider";
+import { cn } from "@/lib/utils";
+
+import { useModels } from "../../model-provider";
 import {
   Combobox,
   ComboboxCollection,
@@ -14,9 +16,8 @@ import {
   ComboboxItem,
   ComboboxLabel,
   ComboboxList,
-} from "@/components/ui/combobox";
-import { cn } from "@/lib/utils";
-import { useThreadStoreActions } from "@/stores/thread-store";
+} from "../../ui/combobox";
+import { useThreadStoreActions } from "../stores";
 
 function toModelKey(model: Pick<ModelConfig, "id" | "provider">) {
   return `${model.provider}:${model.id}`;
@@ -103,7 +104,7 @@ export function ModelSelector({
       <ComboboxInput
         ref={inputRef}
         className={cn(
-          "bg-transparent! h-6! hover:bg-secondary! group/model-select w-75 border-0 font-mono",
+          "hover:bg-secondary! group/model-select h-6! w-75 border-0 bg-transparent! font-mono",
           !readonly && "cursor:pointer hover:bg-secondary"
         )}
         triggerClassName="opacity-0! group-hover/model-select:opacity-100"

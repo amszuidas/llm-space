@@ -16,11 +16,11 @@ import {
   type CSSProperties,
 } from "react";
 
-import { Button } from "@/components/ui/button";
+import { useAutoAnimation } from "@/lib/use-auto-animation";
 import { cn } from "@/lib/utils";
-import { useThreadStore, useThreadStoreActions } from "@/stores/thread-store";
 
-import { useAutoAnimation } from "../../../lib/use-auto-animation";
+import { Button } from "../../ui/button";
+import { useThreadStore, useThreadStoreActions } from "../stores";
 
 import { MessageListItem } from "./message-list-item";
 

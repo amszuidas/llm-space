@@ -1,10 +1,9 @@
 import type { Thread } from "@llm-space/core";
 import { useEffect, useRef } from "react";
 
-import type { ThreadStore } from "@/stores/thread-store";
+import type { ThreadStore } from "./stores";
 
 export interface ThreadPlaygroundEventCallbacks {
-   
   onChange?: (thread: Thread) => void;
   onStreamingStart?: () => void;
   onStreamingEnd?: () => void;

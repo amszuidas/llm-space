@@ -3,8 +3,6 @@
 import { ClipboardPasteIcon, FileIcon, ImagePlusIcon } from "lucide-react";
 import { useCallback, useRef } from "react";
 
-import { useThreadStoreActions } from "@/stores/thread-store";
-
 import { Button } from "../../ui/button";
 import {
   DropdownMenu,
@@ -13,10 +11,11 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "../../ui/dropdown-menu";
+import { useThreadStoreActions } from "../stores/thread-store";
 
 function readImageFile(
   file: File,
-   
+
   onSuccess: (mimeType: string, data: string) => void
 ) {
   const reader = new FileReader();

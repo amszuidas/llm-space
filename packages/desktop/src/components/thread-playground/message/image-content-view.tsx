@@ -3,11 +3,11 @@ import { XIcon } from "lucide-react";
 import React, { useCallback, useState } from "react";
 
 import { cn } from "@/lib/utils";
-import { useThreadStoreActions } from "@/stores/thread-store";
 
 import { Tooltip } from "../../tooltip";
 import { Button } from "../../ui/button";
 import { Dialog, DialogContent, DialogTitle } from "../../ui/dialog";
+import { useThreadStoreActions } from "../stores";
 
 const FRAME_SIZE_PX = 192; // size-48
 
@@ -77,7 +77,7 @@ function _ImageContentView({
             <Button
               variant="ghost"
               size="icon-sm"
-              className="bg-background/80 absolute right-1 top-1 rounded-full border opacity-0 transition-opacity group-hover/image:opacity-100"
+              className="bg-background/80 absolute top-1 right-1 rounded-full border opacity-0 transition-opacity group-hover/image:opacity-100"
               onClick={handleRemove}
             >
               <XIcon className="size-4" />
@@ -88,7 +88,7 @@ function _ImageContentView({
 
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
         <DialogContent
-          className="left-0 top-0 flex h-dvh max-h-none w-dvw max-w-none translate-x-0 translate-y-0 cursor-zoom-out items-center justify-center rounded-none border-0 bg-transparent p-0 shadow-none ring-0 sm:max-w-none"
+          className="top-0 left-0 flex h-dvh max-h-none w-dvw max-w-none translate-x-0 translate-y-0 cursor-zoom-out items-center justify-center rounded-none border-0 bg-transparent p-0 shadow-none ring-0 sm:max-w-none"
           showCloseButton
           onClick={() => setPreviewOpen(false)}
         >

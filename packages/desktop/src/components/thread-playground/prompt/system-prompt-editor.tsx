@@ -1,9 +1,9 @@
 import { memo, useCallback } from "react";
 
 import { cn } from "@/lib/utils";
-import { useThreadStore, useThreadStoreActions } from "@/stores/thread-store";
 
 import { CodeEditor } from "../../code-editor";
+import { useThreadStore, useThreadStoreActions } from "../stores";
 
 function _SystemPromptEditor({
   className,

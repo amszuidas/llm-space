@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import type { KeyboardEvent } from "react";
 
-import { useThreadStore, useThreadStoreActions } from "@/stores/thread-store";
+import { useThreadStore, useThreadStoreActions } from "./stores";
 
 /**
  * Keyboard shortcuts for the thread playground, wired to the container's

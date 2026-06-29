@@ -4,9 +4,12 @@ import { type FunctionTool } from "@llm-space/core";
 import { PlusIcon } from "lucide-react";
 import { useCallback, useState } from "react";
 
+import {
+  useThreadStore,
+  useThreadStoreActions,
+} from "@/components/thread-playground/stores/thread-store";
 import { useAutoAnimation } from "@/lib/use-auto-animation";
 import { cn } from "@/lib/utils";
-import { useThreadStore, useThreadStoreActions } from "@/stores/thread-store";
 
 import { Button } from "../../ui/button";
 

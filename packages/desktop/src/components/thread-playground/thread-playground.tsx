@@ -6,13 +6,6 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { usePanelRef } from "react-resizable-panels";
 
 import { cn } from "@/lib/utils";
-import { canRedo, canUndo } from "@/stores/thread-history";
-import {
-  createThreadStore,
-  ThreadStoreContext,
-  useThreadStore,
-  useThreadStoreActions,
-} from "@/stores/thread-store";
 
 import { Tooltip } from "../tooltip";
 import { Button } from "../ui/button";
@@ -30,6 +23,14 @@ import { TitleEditor } from "./misc/title-editor";
 import { ModelConfigEditor } from "./model/model-config-editor";
 import { SystemPromptEditor } from "./prompt/system-prompt-editor";
 import { RunHistoryListView } from "./run-history-list-view";
+import {
+  canRedo,
+  canUndo,
+  createThreadStore,
+  ThreadStoreContext,
+  useThreadStore,
+  useThreadStoreActions,
+} from "./stores";
 import { ToolListView } from "./tool/tool-list-view";
 import { useShortcuts } from "./use-shortcuts";
 import { useThreadPlaygroundEvents } from "./use-thread-playground-events";
@@ -78,7 +79,9 @@ function _ThreadPlayground({
   onStreamingEnd,
   ...props
 }: ThreadPlaygroundProps) {
-  const [store] = useState(() => createThreadStore(initialValue, { transport }));
+  const [store] = useState(() =>
+    createThreadStore(initialValue, { transport })
+  );
   useThreadPlaygroundEvents(store, {
     onChange,
     onStreamingStart,

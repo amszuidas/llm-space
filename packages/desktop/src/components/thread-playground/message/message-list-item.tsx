@@ -3,14 +3,15 @@ import type { ImageDataContent, Message } from "@llm-space/core";
 import { PlusIcon } from "lucide-react";
 import { memo, useCallback, useMemo } from "react";
 
-import { CodeEditor } from "@/components/code-editor";
-import { Tooltip } from "@/components/tooltip";
-import { Button } from "@/components/ui/button";
-import { CollapsibleContent } from "@/components/ui/collapsible-content";
-import { ShineBorder } from "@/components/ui/shine-border";
-import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { useThreadStoreActions } from "@/stores/thread-store";
+
+import { CodeEditor } from "../../code-editor";
+import { Tooltip } from "../../tooltip";
+import { Button } from "../../ui/button";
+import { CollapsibleContent } from "../../ui/collapsible-content";
+import { ShineBorder } from "../../ui/shine-border";
+import { Skeleton } from "../../ui/skeleton";
+import { useThreadStoreActions } from "../stores";
 
 import { ImageContentList } from "./image-content-view";
 import { MessageListItemHeader } from "./message-list-item-header";
@@ -113,7 +114,7 @@ function _MessageListItem({
   return (
     <div
       className={cn(
-        "bg-(--textarea) hover:border-accent-foreground/20 focus-within:border-ring! group relative flex size-full flex-col items-center rounded-lg border transition-[padding-bottom,border-color]",
+        "hover:border-accent-foreground/20 focus-within:border-ring! group relative flex size-full flex-col items-center rounded-lg border bg-(--textarea) transition-[padding-bottom,border-color]",
         collapsed && "pb-2.5",
         className
       )}
@@ -125,10 +126,10 @@ function _MessageListItem({
           readonly && "invisible"
         )}
       >
-        <div className="insert-line absolute left-0 right-2 top-1.5 border-b border-dashed opacity-0 transition-[opacity,border-color,border-style] group-hover:opacity-100"></div>
+        <div className="insert-line absolute top-1.5 right-2 left-0 border-b border-dashed opacity-0 transition-[opacity,border-color,border-style] group-hover:opacity-100"></div>
         <Tooltip content="Insert message here">
           <Button
-            className="text-muted-foreground hover:border-primary hover:bg-primary! hover:text-primary-foreground absolute -right-3 -top-0.5 z-10 size-4 rounded-full opacity-0 transition-[opacity,background-color,color,border-color] group-hover:opacity-100"
+            className="text-muted-foreground hover:border-primary hover:bg-primary! hover:text-primary-foreground absolute -top-0.5 -right-3 z-10 size-4 rounded-full opacity-0 transition-[opacity,background-color,color,border-color] group-hover:opacity-100"
             variant="outline"
             size="icon-xs"
             onClick={() => insertMessageBefore(message.id)}
@@ -169,7 +170,7 @@ function _MessageListItem({
           />
           {message.content.length > 0 && (
             <CodeEditor
-              className="min-h-9.5 max-h-[40vh] w-full"
+              className="max-h-[40vh] min-h-9.5 w-full"
               autoFocus
               hideFocusRing
               hideBorder
@@ -209,7 +210,7 @@ function StreamingMessageSkeleton({ className }: { className?: string }) {
         <Skeleton className="h-3 w-[33%] rounded" />
       </div>
       <div className="px-1 pt-3">
-        <Skeleton className="animate-skeleton-extending delay-750 h-4 w-[90%] rounded" />
+        <Skeleton className="animate-skeleton-extending h-4 w-[90%] rounded delay-750" />
       </div>
     </div>
   );

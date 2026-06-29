@@ -1,5 +1,6 @@
-import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+
+import { Skeleton } from "../../ui/skeleton";
 
 export function ThreadPlaygroundSkeleton({
   className,
@@ -50,7 +51,7 @@ export function ThreadPlaygroundSkeleton({
               <div className="text-muted-foreground shrink-0 py-2 text-sm">
                 System prompt
               </div>
-              <div className="bg-(--textarea) flex min-h-0 grow flex-col gap-2 rounded-md border px-3 py-3">
+              <div className="flex min-h-0 grow flex-col gap-2 rounded-md border bg-(--textarea) px-3 py-3">
                 <Skeleton className="h-3.5 w-full rounded" />
                 <Skeleton className="h-3.5 w-[94%] rounded" />
                 <Skeleton className="h-3.5 w-full rounded" />
@@ -77,7 +78,7 @@ export function ThreadPlaygroundSkeleton({
 
 function MessageSkeleton({ contentLines }: { contentLines: number }) {
   return (
-    <div className="bg-(--textarea) flex flex-col rounded-lg border">
+    <div className="flex flex-col rounded-lg border bg-(--textarea)">
       <div className="flex items-center gap-2 px-3 pt-2">
         <Skeleton className="size-4 rounded-sm" />
         <Skeleton className="h-3.5 w-14" />

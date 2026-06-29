@@ -3,10 +3,11 @@ import { memo, useMemo } from "react";
 import { format } from "timeago.js";
 
 import { cn } from "@/lib/utils";
-import { useThreadStore, useThreadStoreActions } from "@/stores/thread-store";
 
 import { useAutoAnimation } from "../../lib/use-auto-animation";
 import { Item, ItemContent, ItemDescription, ItemGroup } from "../ui/item";
+
+import { useThreadStore, useThreadStoreActions } from "./stores";
 
 /** A short summary of a run's resulting thread, derived from its last message. */
 function _summarizeRun(thread: Thread): string {
@@ -44,7 +45,7 @@ function _RunHistoryListView() {
       </div>
       <ItemGroup
         ref={containerRef}
-        className="gap-3.5! min-h-0 grow overflow-y-auto px-3 py-3.5"
+        className="min-h-0 grow gap-3.5! overflow-y-auto px-3 py-3.5"
       >
         {runs.length === 0 ? (
           <div className="text-muted-foreground m-auto text-xs">

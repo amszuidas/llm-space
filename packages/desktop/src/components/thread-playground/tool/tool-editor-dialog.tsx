@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { CodeEditor } from "@/components/code-editor";
-import { useThreadStoreActions } from "@/stores/thread-store";
+import { useThreadStoreActions } from "@/components/thread-playground/stores/thread-store";
 
 import { Button } from "../../ui/button";
 import {
@@ -38,7 +38,7 @@ export function ToolEditorDialog({
   tool,
 }: {
   open: boolean;
-   
+
   onOpenChange: (open: boolean) => void;
   tool: FunctionTool | null;
 }) {

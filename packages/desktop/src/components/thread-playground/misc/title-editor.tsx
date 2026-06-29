@@ -2,11 +2,11 @@ import { PencilIcon } from "lucide-react";
 import { memo, useCallback, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
-import { useThreadStore, useThreadStoreActions } from "@/stores/thread-store";
 
 import { Tooltip } from "../../tooltip";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
+import { useThreadStore, useThreadStoreActions } from "../stores";
 
 function _TitleEditor({
   className,
@@ -57,7 +57,7 @@ function _TitleEditor({
       <Input
         autoFocus
         className={cn(
-          "bg-transparent! h-8 border-transparent text-sm font-medium shadow-none focus-visible:ring-0",
+          "h-8 border-transparent bg-transparent! text-sm font-medium shadow-none focus-visible:ring-0",
           className
         )}
         value={draftTitle}

@@ -5,9 +5,13 @@ import { saveZoom } from "./window-state";
 ApplicationMenu.setApplicationMenu([
   {
     submenu: [
-      { label: "About LLM Space 4", role: "about" },
+      { label: "About LLM Space", role: "about" },
       { type: "divider" },
-      { label: "Quit", role: "quit" },
+      {
+        label: "Quit LLM Space",
+        role: "quit",
+        accelerator: "CommandOrControl+Q",
+      },
     ],
   },
   {

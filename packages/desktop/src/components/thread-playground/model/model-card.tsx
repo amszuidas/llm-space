@@ -1,8 +1,9 @@
 import type { ModelConfig } from "@llm-space/core";
 import type { ReactNode } from "react";
 
-import { useModel, useModels } from "@/components/model-provider";
 import { cn } from "@/lib/utils";
+
+import { useModel, useModels } from "../../model-provider";
 
 function formatTokenCount(value: number) {
   return value.toLocaleString();
@@ -70,7 +71,7 @@ export function ModelCard({
         <ModelCardField
           label="Base URL"
           value={
-            <span className="break-all text-left">{resolvedModel.baseUrl}</span>
+            <span className="text-left break-all">{resolvedModel.baseUrl}</span>
           }
         />
         <ModelCardField

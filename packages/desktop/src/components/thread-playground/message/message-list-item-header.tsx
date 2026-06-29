@@ -11,10 +11,10 @@ import {
 import { memo, useCallback, useMemo } from "react";
 
 import { cn } from "@/lib/utils";
-import { useThreadStoreActions } from "@/stores/thread-store";
 
 import { Tooltip } from "../../tooltip";
 import { Button } from "../../ui/button";
+import { useThreadStoreActions } from "../stores";
 
 import { AddImagesMenu } from "./add-images-menu";
 
@@ -57,7 +57,7 @@ function _MessageListItemHeader({
         <div
           {...dragHandleProps}
           className={cn(
-            "text-muted-foreground hover:text-foreground -ml-3.5 flex shrink-0 cursor-grab items-center opacity-0 transition-opacity active:cursor-grabbing group-hover:opacity-100",
+            "text-muted-foreground hover:text-foreground -ml-3.5 flex shrink-0 cursor-grab items-center opacity-0 transition-opacity group-hover:opacity-100 active:cursor-grabbing",
             readonly ? "invisible" : ""
           )}
         >

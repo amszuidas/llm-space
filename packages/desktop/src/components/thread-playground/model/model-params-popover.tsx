@@ -10,16 +10,15 @@ import {
   useState,
 } from "react";
 
+import { cn } from "@/lib/utils";
+
+import { Tooltip } from "../../tooltip";
+import { Button } from "../../ui/button";
 import {
   HoverCard,
   HoverCardContent,
   HoverCardTrigger,
-} from "@/components/ui/hover-card";
-import { cn } from "@/lib/utils";
-import { useThreadStore, useThreadStoreActions } from "@/stores/thread-store";
-
-import { Tooltip } from "../../tooltip";
-import { Button } from "../../ui/button";
+} from "../../ui/hover-card";
 import { Input } from "../../ui/input";
 import {
   Popover,
@@ -37,6 +36,7 @@ import {
 } from "../../ui/select";
 import { Slider } from "../../ui/slider";
 import { Switch } from "../../ui/switch";
+import { useThreadStore, useThreadStoreActions } from "../stores/thread-store";
 
 import { ModelCard } from "./model-card";
 
@@ -65,7 +65,7 @@ function ParamField({
   label: string;
   enabled: boolean;
   readonly?: boolean;
-   
+
   onEnabledChange: (enabled: boolean) => void;
   children: ReactNode;
 }) {
