@@ -69,13 +69,13 @@ export function Page() {
         onToggleSidebar={toggleSidebar}
       />
       <main className="min-h-0 grow">
-        <ResizablePanelGroup className="size-full">
+        <ResizablePanelGroup>
           <ResizablePanel
-            className="bg-background"
             panelRef={sidebarPanelRef}
             collapsible
             collapsedSize={0}
             defaultSize="16.7%"
+            minSize={200}
             onResize={(size) => setSidebarOpen(size.inPixels > 0)}
           >
             <FileSystemTreeView
