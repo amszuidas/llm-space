@@ -1,15 +1,20 @@
 import type { AgentEvent } from "@earendil-works/pi-agent-core";
-import { parseServerSentEvents, type ServerSentEvent } from "parse-sse";
 
+import type { AgentStreamRequest } from "../types/agent";
 import type { ModelConfig } from "../types/models";
 import type { ThreadContext } from "../types/threads";
 
 import { convertToPiContext } from "./converters";
+import { createHttpTransport, type AgentTransport } from "./transport";
 
 export async function* streamThread(
   args: { context: ThreadContext; model: ModelConfig },
-  config: { signal?: AbortSignal; endpoint?: string } = {}
-) {
+  config: {
+    signal?: AbortSignal;
+    endpoint?: string;
+    transport?: AgentTransport;
+  } = {}
+): AsyncGenerator<AgentEvent> {
   const context = convertToPiContext(args.context);
   if (context.messages.length > 0) {
     const lastMessage = context.messages[context.messages.length - 1]!;
@@ -20,7 +25,7 @@ export async function* streamThread(
       );
     }
   }
-  const body = {
+  const request: AgentStreamRequest = {
     model: {
       provider: args.model.provider,
       id: args.model.id,
@@ -30,26 +35,7 @@ export async function* streamThread(
     },
     context,
   };
-  const res = await fetch(config.endpoint ?? "/api/pi/agent/stream", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-    signal: config.signal,
-  });
-  if (!res.ok) {
-    throw new Error(`Failed to stream thread: ${res.statusText}`);
-  }
-  const eventStream = parseServerSentEvents(
-    res
-  ) as unknown as AsyncIterable<ServerSentEvent>;
-  for await (const chunk of eventStream) {
-    if (chunk.data === "[START]" || chunk.data === "[DONE]") {
-      // Ignore lifecycle events
-    } else {
-      const event = JSON.parse(chunk.data) as AgentEvent;
-      yield event;
-    }
-  }
+  // Transport is the only HTTP-vs-RPC-specific piece; default to HTTP/SSE.
+  const transport = config.transport ?? createHttpTransport(config.endpoint);
+  yield* transport(request, { signal: config.signal });
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import type { Thread } from "@llm-space/core";
+import type { AgentTransport, Thread } from "@llm-space/core";
 import { HistoryIcon, PlayIcon, Redo2Icon, Undo2Icon } from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { usePanelRef } from "react-resizable-panels";
@@ -38,6 +38,8 @@ export interface ThreadPlaygroundProps {
   className?: string;
   initialValue: Thread;
   readonly?: boolean;
+  /** The streaming transport used by runs (e.g. HTTP or Electrobun RPC). */
+  transport?: AgentTransport;
 
   onChange?: (thread: Thread) => void;
   onStreamingStart?: () => void;
@@ -70,12 +72,13 @@ export function ThreadPlayground({
 
 function _ThreadPlayground({
   initialValue,
+  transport,
   onChange,
   onStreamingStart,
   onStreamingEnd,
   ...props
 }: ThreadPlaygroundProps) {
-  const [store] = useState(() => createThreadStore(initialValue));
+  const [store] = useState(() => createThreadStore(initialValue, { transport }));
   useThreadPlaygroundEvents(store, {
     onChange,
     onStreamingStart,

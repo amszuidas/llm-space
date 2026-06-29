@@ -1,11 +1,12 @@
 import type * as pi from "@earendil-works/pi-ai";
 
+import type { PiThreadContext } from "../types/agent";
 import type { Message } from "../types/messages";
 import type { ThreadContext } from "../types/threads";
 import type { Tool } from "../types/tools";
 
-export function convertToPiContext(context: ThreadContext) {
-  const result = {
+export function convertToPiContext(context: ThreadContext): PiThreadContext {
+  const result: PiThreadContext = {
     systemPrompt: context.systemPrompt,
     messages: context.messages ? _convertToPiMessages(context.messages) : [],
     tools: context.tools ? _convertToPiTools(context.tools) : [],

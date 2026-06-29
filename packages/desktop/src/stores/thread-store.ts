@@ -6,6 +6,7 @@ import {
   streamThread,
   Tool as ToolSchema,
   uuid,
+  type AgentTransport,
   type FunctionTool,
   type MessageContent,
   type ModelConfig,
@@ -74,7 +75,10 @@ export interface ThreadState {
 
 export type ThreadStore = StoreApi<ThreadState>;
 
-export function createThreadStore(initialThread: Thread): ThreadStore {
+export function createThreadStore(
+  initialThread: Thread,
+  options: { transport?: AgentTransport } = {}
+): ThreadStore {
   return createStore<ThreadState>()(
     subscribeWithSelector((set, get) => {
       // --- internal helpers ---------------------------------------------------
@@ -393,7 +397,7 @@ export function createThreadStore(initialThread: Thread): ThreadStore {
                 ...get().thread,
                 context: { ...get().thread.context, messages },
               },
-              { signal: abortController.signal }
+              { signal: abortController.signal, transport: options.transport }
             );
             for await (const chunk of response) {
               const reduced = reduceMessages(chunk, {

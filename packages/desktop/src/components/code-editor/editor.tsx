@@ -142,7 +142,7 @@ function _CodeEditor(
   return (
     <div
       className={cn(
-        "flex cursor-text flex-col overflow-hidden rounded-md border px-1 transition-opacity",
+        "flex cursor-text flex-col overflow-hidden rounded-lg border px-1 transition-opacity",
         "bg-(--textarea)",
         !hideFocusRing && "focus-within:border-ring!",
         hideBorder && "border-transparent",

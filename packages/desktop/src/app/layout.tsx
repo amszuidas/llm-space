@@ -1,10 +1,10 @@
 import "@fontsource-variable/geist";
 import "@fontsource-variable/geist-mono";
 import { ModelProviderGroup } from "@llm-space/core";
-import { Toaster } from "sonner";
 
 import { AppHeader } from "@/components/app-header";
 import { ModelProvider } from "@/components/model-provider";
+import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { electrobun } from "@/lib/electrobun";
 import "@/styles/globals.css";
