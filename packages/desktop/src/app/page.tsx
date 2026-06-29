@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 import { FileSystemTreeView } from "@/components/file-system-tree-view";
 import { ThreadTabs, useThreadTabs } from "@/components/thread-tabs";
@@ -38,6 +38,14 @@ export function Page() {
     };
   }, [close, closeOthers, closeAll]);
 
+  // The "New file" tab button reuses the tree's create-thread flow: the tree
+  // registers it here, and the button (and ⌘N menu) trigger the same handler.
+  const newThreadRef = useRef<(() => void) | null>(null);
+  const registerNewThread = useCallback((fn: () => void) => {
+    newThreadRef.current = fn;
+  }, []);
+  const handleNewFile = useCallback(() => newThreadRef.current?.(), []);
+
   return (
     <ResizablePanelGroup className="size-full">
       <ResizablePanel className="bg-background" defaultSize="16.7%">
@@ -46,6 +54,7 @@ export function Page() {
           onSelectFile={tabs.open}
           onRemove={tabs.handleRemove}
           onMove={tabs.handleMove}
+          registerNewThread={registerNewThread}
         />
       </ResizablePanel>
       <ResizableHandle />
@@ -56,6 +65,7 @@ export function Page() {
           activate={tabs.activate}
           close={tabs.close}
           reorder={tabs.reorder}
+          onNewFile={handleNewFile}
         />
       </ResizablePanel>
     </ResizablePanelGroup>

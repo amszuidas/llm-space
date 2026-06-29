@@ -55,6 +55,9 @@ interface TreeRenderItemParams {
 type TreeProps = React.HTMLAttributes<HTMLDivElement> & {
   data: TreeDataItem[] | TreeDataItem;
   initialSelectedItemId?: string;
+  /** Programmatically select a node by id. Each new value syncs into the
+   *  internal selection; clicks still update selection normally afterwards. */
+  selectedId?: string | null;
   onSelectChange?: (item: TreeDataItem | undefined) => void;
   /** Controlled set of expanded node ids. When provided, open state is driven
    *  entirely by this list (toggles are reported through each item's onClick). */
@@ -71,6 +74,7 @@ const TreeView = React.forwardRef<HTMLDivElement, TreeProps>(
     {
       data,
       initialSelectedItemId,
+      selectedId,
       onSelectChange,
       expandedIds,
       expandAll,
@@ -86,6 +90,15 @@ const TreeView = React.forwardRef<HTMLDivElement, TreeProps>(
     const [selectedItemId, setSelectedItemId] = React.useState<
       string | undefined
     >(initialSelectedItemId);
+
+    // Sync externally-driven selection (e.g. revealing a freshly created node)
+    // into internal state. Only runs when the prop changes, so it never fights
+    // user clicks.
+    React.useEffect(() => {
+      if (selectedId !== undefined && selectedId !== null) {
+        setSelectedItemId(selectedId);
+      }
+    }, [selectedId]);
 
     const [draggedItem, setDraggedItem] = React.useState<TreeDataItem | null>(
       null

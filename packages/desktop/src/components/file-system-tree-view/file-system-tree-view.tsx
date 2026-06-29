@@ -2,7 +2,7 @@
 
 import type { FileNode } from "@llm-space/core";
 import { MessagesSquare } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   TreeView,
@@ -18,7 +18,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import { Spinner } from "@/components/ui/spinner";
+import { electrobun } from "@/lib/electrobun";
 import { cn } from "@/lib/utils";
 
 import { NodeActions, RootActions } from "./node-actions";
@@ -34,6 +41,7 @@ export function FileSystemTreeView({
   onSelectFile,
   onRemove,
   onMove,
+  registerNewThread,
 }: {
   className?: string;
   /** Fired with a file's path when it is selected (folders aren't selectable). */
@@ -42,6 +50,8 @@ export function FileSystemTreeView({
   onRemove?: (path: string) => void;
   /** Fired after a path changes via rename or move (`from` → `to`). */
   onMove?: (from: string, to: string) => void;
+  /** Hand the parent the "new thread at root" trigger (e.g. for a toolbar button). */
+  registerNewThread?: (fn: () => void) => void;
 }) {
   const {
     nodesByPath,
@@ -63,6 +73,58 @@ export function FileSystemTreeView({
   // Path of a just-created node we want to expand-to, scroll to, and rename
   // once its parent's listing has loaded.
   const [pendingReveal, setPendingReveal] = useState<string | null>(null);
+  // Path of a just-created *file* whose create flow ends with the in-place
+  // rename. Once that rename concludes we open it in a tab (folders excluded).
+  const [pendingOpen, setPendingOpen] = useState<string | null>(null);
+  // Node to select in the tree, driven programmatically (e.g. revealing a
+  // freshly created file once its rename completes).
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Path of a thread created via the "New Thread" menu: revealed (selected +
+  // opened + scrolled to) once its listing loads, but never renamed.
+  const [pendingThread, setPendingThread] = useState<string | null>(null);
+
+  // Open a freshly created file in a tab and select its node in the tree.
+  function revealCreatedFile(path: string) {
+    setSelectedId(path);
+    onSelectFile?.(path);
+  }
+
+  // "New Thread" menu command (over RPC from the bun process): create an
+  // auto-named thread at the workspace root, no in-place rename.
+  const createThread = useCallback(async () => {
+    const path = await createFile("");
+    if (path) setPendingThread(path);
+  }, [createFile]);
+
+  // Expose the trigger to the parent (the tab bar's "New file" button).
+  useEffect(() => {
+    registerNewThread?.(() => void createThread());
+  }, [registerNewThread, createThread]);
+
+  useEffect(() => {
+    const rpc = electrobun.rpc;
+    if (!rpc) return;
+    const onNewThread = () => void createThread();
+    rpc.addMessageListener("newThread", onNewThread);
+    return () => rpc.removeMessageListener("newThread", onNewThread);
+  }, [createThread]);
+
+  // Once the new thread shows up in its parent's listing, reveal it (select +
+  // open + scroll), skipping the rename step the tree's own create flow uses.
+  useEffect(() => {
+    if (!pendingThread) return;
+    const siblings = nodesByPath.get(parentOf(pendingThread));
+    if (!siblings?.some((n) => n.path === pendingThread)) return;
+    const path = pendingThread;
+    setSelectedId(path);
+    onSelectFile?.(path);
+    requestAnimationFrame(() => {
+      document
+        .querySelector(`[data-tree-id="${CSS.escape(path)}"]`)
+        ?.scrollIntoView({ block: "nearest" });
+    });
+    setPendingThread(null);
+  }, [pendingThread, nodesByPath, onSelectFile]);
 
   async function create(parent: string, kind: "file" | "folder") {
     const path =
@@ -70,6 +132,7 @@ export function FileSystemTreeView({
     if (!path) return;
     if (parent !== "") expand(parent);
     setPendingReveal(path);
+    if (kind === "file") setPendingOpen(path);
   }
 
   // When the new node's parent listing contains it, reveal + rename it.
@@ -174,17 +237,36 @@ export function FileSystemTreeView({
         {isRenaming ? (
           <RenameInput
             initial={p.item.name}
-            onCancel={() => setRenaming(null)}
+            onCancel={() => {
+              setRenaming(null);
+              // Create flow cancelled: the file already exists at its untitled
+              // path, so reveal it as-is.
+              if (pendingOpen === p.item.id) {
+                setPendingOpen(null);
+                revealCreatedFile(p.item.id);
+              }
+            }}
             onConfirm={(value) => {
               const base = value.trim();
               setRenaming(null);
+              const from = p.item.id;
+              const openAfter = pendingOpen === from;
+              if (openAfter) setPendingOpen(null);
               if (base && base !== p.item.name) {
                 // `Icon` is only set on files, so it distinguishes file vs
                 // folder even while the row is rendered as a leaf for renaming.
-                const from = p.item.id;
                 void rename(from, Icon ? ensureJson(base) : base).then((to) => {
-                  if (to) onMove?.(from, to);
+                  if (to) {
+                    onMove?.(from, to);
+                    if (openAfter) revealCreatedFile(to);
+                  } else if (openAfter) {
+                    // Rename was a no-op/failed; the file still lives at `from`.
+                    revealCreatedFile(from);
+                  }
                 });
+              } else if (openAfter) {
+                // Name left unchanged: reveal the created file at its path.
+                revealCreatedFile(from);
               }
             }}
           />
@@ -220,10 +302,20 @@ export function FileSystemTreeView({
           <div className="flex items-center justify-center p-4">
             <Spinner />
           </div>
+        ) : data.length === 0 ? (
+          <Empty className="h-full">
+            <EmptyHeader>
+              <EmptyTitle>No threads yet</EmptyTitle>
+              <EmptyDescription>
+                Create a thread to get started.
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
         ) : (
           <TreeView
             data={data}
             expandedIds={[...expanded]}
+            selectedId={selectedId}
             renderItem={renderItem}
             onDocumentDrag={onDocumentDrag}
             onSelectChange={(item) => {
@@ -287,7 +379,7 @@ function RenameInput({
     <input
       autoFocus
       value={value}
-      className="ring-border bg-background text-foreground focus-visible:ring-ring/50 box-border h-5 w-full min-w-0 grow rounded px-1 text-sm leading-none outline-none ring-1 ring-inset focus-visible:ring-2"
+      className="ring-border bg-background text-foreground focus-visible:ring-ring/50 box-border h-5 w-full min-w-0 grow rounded px-1 text-sm leading-none ring-1 outline-none ring-inset focus-visible:ring-2"
       onChange={(e) => setValue(e.target.value)}
       onClick={(e) => e.stopPropagation()}
       onPointerDown={(e) => e.stopPropagation()}

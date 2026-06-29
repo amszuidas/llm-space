@@ -5,6 +5,8 @@ import {
 } from "@earendil-works/pi-ai";
 import { openAICompletionsApi } from "@earendil-works/pi-ai/api/openai-completions.lazy";
 import { deepseekProvider } from "@earendil-works/pi-ai/providers/deepseek";
+import { minimaxProvider } from "@earendil-works/pi-ai/providers/minimax";
+import { minimaxCnProvider } from "@earendil-works/pi-ai/providers/minimax-cn";
 import { openaiCodexProvider } from "@earendil-works/pi-ai/providers/openai-codex";
 import type { ModelConfig, ModelProviderGroup } from "@llm-space/core";
 
@@ -307,5 +309,7 @@ function setupModels() {
   models.setProvider(arkProvider);
   models.setProvider(arkCodingPlanProvider);
   models.setProvider(arkForAuroraProvider);
+  models.setProvider(minimaxProvider());
+  models.setProvider(minimaxCnProvider());
   return models;
 }

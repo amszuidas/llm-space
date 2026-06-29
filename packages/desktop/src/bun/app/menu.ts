@@ -32,6 +32,14 @@ ApplicationMenu.setApplicationMenu([
     label: "File",
     submenu: [
       {
+        label: "New File",
+        action: "newThread",
+        accelerator: "CommandOrControl+N",
+      },
+      {
+        type: "separator",
+      },
+      {
         label: "Close Tab",
         action: "closeTab",
         accelerator: "CommandOrControl+W",
@@ -161,6 +169,10 @@ export function registerMenuActions(window: BrowserWindow) {
       case "resetZoom": {
         window.setPageZoom(1);
         saveZoom(1);
+        return;
+      }
+      case "newThread": {
+        mainWindowRPC.send.newThread({});
         return;
       }
       case "closeTab": {
