@@ -2,6 +2,7 @@ import { BrowserView } from "electrobun/bun";
 
 import type { DesktopRPCType } from "../../shared/rpc";
 import { getAvailableModelGroups } from "../models";
+import { localFs } from "../storage";
 import { abortStreamThread, runStreamThread } from "../streaming";
 
 /**
@@ -25,6 +26,28 @@ export const mainWindowRPC: MainWindowRPC =
             mainWindow.maximize();
           }
           return { maximized: mainWindow.isMaximized() };
+        },
+        fsLs: ({ path }) => localFs.ls(path),
+        fsMkdir: async ({ path }) => {
+          await localFs.mkdir(path);
+          return null;
+        },
+        fsCp: async ({ src, dest }) => {
+          await localFs.cp(src, dest);
+          return null;
+        },
+        fsMv: async ({ src, dest }) => {
+          await localFs.mv(src, dest);
+          return null;
+        },
+        fsRm: async ({ path }) => {
+          await localFs.rm(path);
+          return null;
+        },
+        fsRead: ({ path }) => localFs.read(path),
+        fsWrite: async ({ path, thread }) => {
+          await localFs.write(path, thread);
+          return null;
         },
       },
       messages: {

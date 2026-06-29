@@ -9,17 +9,21 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { electrobun } from "@/lib/electrobun";
 import "@/styles/globals.css";
 
+import { QueryProvider } from "./query-provider";
+
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <ModelProvider fetcher={fetchModels}>
-      <TooltipProvider delayDuration={1000}>
-        <div className="bg-background flex size-full flex-col">
-          <Toaster theme="dark" position="top-center" offset={28} />
-          <AppHeader />
-          <main className="min-h-0 flex-1">{children}</main>
-        </div>
-      </TooltipProvider>
-    </ModelProvider>
+    <QueryProvider>
+      <ModelProvider fetcher={fetchModels}>
+        <TooltipProvider delayDuration={1000}>
+          <div className="bg-background flex size-full flex-col">
+            <Toaster theme="dark" position="top-center" offset={28} />
+            <AppHeader />
+            <main className="min-h-0 flex-1">{children}</main>
+          </div>
+        </TooltipProvider>
+      </ModelProvider>
+    </QueryProvider>
   );
 }
 

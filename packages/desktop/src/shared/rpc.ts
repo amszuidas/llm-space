@@ -1,7 +1,9 @@
 import type {
   AgentEvent,
   AgentStreamRequest,
+  FileNode,
   ModelProviderGroup,
+  Thread,
 } from "@llm-space/core";
 import type { RPCSchema } from "electrobun";
 
@@ -33,6 +35,15 @@ export interface DesktopRPCType {
         params: Record<string, never>;
         response: { maximized: boolean };
       };
+      // Local filesystem / thread storage, mirroring the web `/api/fs/local/*`
+      // routes. Void operations resolve to `null`.
+      fsLs: { params: { path: string }; response: FileNode[] };
+      fsMkdir: { params: { path: string }; response: null };
+      fsCp: { params: { src: string; dest: string }; response: null };
+      fsMv: { params: { src: string; dest: string }; response: null };
+      fsRm: { params: { path: string }; response: null };
+      fsRead: { params: { path: string }; response: Thread };
+      fsWrite: { params: { path: string; thread: Thread }; response: null };
     };
     // Messages the webview SENDS and the bun side handles.
     messages: {

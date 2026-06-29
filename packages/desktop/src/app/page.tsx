@@ -1,21 +1,34 @@
-import { createRpcTransport } from "@/client/rpc-transport";
-import { ThreadPlayground } from "@/components/thread-playground";
-
-// One transport for the app: stream agent runs over Electrobun RPC to the bun
-// process (there is no HTTP server in the desktop app).
-const rpcTransport = createRpcTransport();
+import { FileSystemTreeView } from "@/components/file-system-tree-view";
+import { ThreadTabs, useThreadTabs } from "@/components/thread-tabs";
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "@/components/ui/resizable";
 
 export function Page() {
+  const tabs = useThreadTabs();
+
   return (
-    <ThreadPlayground
-      className="size-full"
-      transport={rpcTransport}
-      initialValue={{
-        model: {
-          id: "deepseek-v4-flash",
-          provider: "deepseek",
-        },
-      }}
-    />
+    <ResizablePanelGroup className="size-full">
+      <ResizablePanel className="bg-background" defaultSize="16.7%">
+        <FileSystemTreeView
+          className="size-full"
+          onSelectFile={tabs.open}
+          onRemove={tabs.handleRemove}
+          onMove={tabs.handleMove}
+        />
+      </ResizablePanel>
+      <ResizableHandle />
+      <ResizablePanel>
+        <ThreadTabs
+          tabs={tabs.tabs}
+          activePath={tabs.activePath}
+          activate={tabs.activate}
+          close={tabs.close}
+          reorder={tabs.reorder}
+        />
+      </ResizablePanel>
+    </ResizablePanelGroup>
   );
 }
