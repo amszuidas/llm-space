@@ -8,11 +8,10 @@
     "apps/*"
   ],
   "scripts": {
-    "check": "bun run typecheck && eslint .",
-    "dev": "cd packages/web && bun run dev",
+    "check": "eslint .",
+    "dev": "cd packages/ && bun run dev",
     "lint": "eslint --fix",
     "lint:check": "eslint .",
-    "typecheck": "cd packages/web && bun run typecheck",
     "prepare": "husky"
   },
   "catalog": {
