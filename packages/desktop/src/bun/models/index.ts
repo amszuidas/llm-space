@@ -49,6 +49,7 @@ function setupModels() {
         maxTokens: 262144,
         compat: {
           supportsDeveloperRole: false,
+          thinkingFormat: "deepseek",
         },
         cost: {
           input: 0,
@@ -69,6 +70,7 @@ function setupModels() {
         maxTokens: 262144,
         compat: {
           supportsDeveloperRole: false,
+          thinkingFormat: "deepseek",
         },
         cost: {
           input: 0,
@@ -89,6 +91,7 @@ function setupModels() {
         maxTokens: 262144,
         compat: {
           supportsDeveloperRole: false,
+          thinkingFormat: "deepseek",
         },
         cost: {
           input: 0,
@@ -120,6 +123,7 @@ function setupModels() {
         maxTokens: 262144,
         compat: {
           supportsDeveloperRole: false,
+          thinkingFormat: "deepseek",
         },
         cost: {
           input: 0,
@@ -140,6 +144,7 @@ function setupModels() {
         maxTokens: 262144,
         compat: {
           supportsDeveloperRole: false,
+          thinkingFormat: "deepseek",
         },
         cost: {
           input: 0,
@@ -160,6 +165,14 @@ function setupModels() {
         maxTokens: 384000,
         compat: {
           supportsDeveloperRole: false,
+          thinkingFormat: "deepseek",
+        },
+        thinkingLevelMap: {
+          minimal: null,
+          low: null,
+          medium: null,
+          high: "high",
+          xhigh: "max",
         },
         cost: {
           input: 0,
@@ -181,6 +194,13 @@ function setupModels() {
         compat: {
           supportsDeveloperRole: false,
         },
+        thinkingLevelMap: {
+          minimal: null,
+          low: null,
+          medium: null,
+          high: "high",
+          xhigh: "max",
+        },
         cost: {
           input: 0,
           output: 0,
@@ -200,6 +220,7 @@ function setupModels() {
         maxTokens: 131072,
         compat: {
           supportsDeveloperRole: false,
+          thinkingFormat: "deepseek",
         },
         cost: {
           input: 0,
@@ -220,6 +241,7 @@ function setupModels() {
         maxTokens: 262144,
         compat: {
           supportsDeveloperRole: false,
+          thinkingFormat: "deepseek",
         },
         cost: {
           input: 0,
@@ -240,6 +262,39 @@ function setupModels() {
         maxTokens: 128000,
         compat: {
           supportsDeveloperRole: false,
+          thinkingFormat: "deepseek",
+        },
+        cost: {
+          input: 0,
+          output: 0,
+          cacheRead: 0,
+          cacheWrite: 0,
+        },
+      },
+    ],
+    api: openAICompletionsApi(),
+  });
+  const arkForCDPProvider = createProvider({
+    id: "ark-for-cdp",
+    name: "VolcEngine Ark for CDP",
+    baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
+    auth: {
+      apiKey: envApiKeyAuth("CDP_ARK_API_KEY", ["CDP_ARK_API_KEY"]),
+    },
+    models: [
+      {
+        id: "ep-20260630124954-4vbw4",
+        provider: "ark-for-cdp",
+        name: "Doubao-Seed-2.1-pro",
+        api: "openai-completions",
+        baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
+        reasoning: true,
+        input: ["text", "image"],
+        contextWindow: 262144,
+        maxTokens: 262144,
+        compat: {
+          supportsDeveloperRole: false,
+          thinkingFormat: "deepseek",
         },
         cost: {
           input: 0,
@@ -271,6 +326,7 @@ function setupModels() {
         maxTokens: 262144,
         compat: {
           supportsDeveloperRole: false,
+          thinkingFormat: "deepseek",
         },
         cost: {
           input: 0,
@@ -291,6 +347,7 @@ function setupModels() {
         maxTokens: 262144,
         compat: {
           supportsDeveloperRole: false,
+          thinkingFormat: "deepseek",
         },
         cost: {
           input: 0,
@@ -309,6 +366,7 @@ function setupModels() {
   models.setProvider(arkProvider);
   models.setProvider(arkCodingPlanProvider);
   models.setProvider(arkForAuroraProvider);
+  models.setProvider(arkForCDPProvider);
   models.setProvider(minimaxProvider());
   models.setProvider(minimaxCnProvider());
   return models;
