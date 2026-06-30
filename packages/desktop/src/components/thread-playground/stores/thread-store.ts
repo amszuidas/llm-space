@@ -391,6 +391,33 @@ export function createThreadStore(
 
           let streamingMessage: AssistantMessage | null = null;
           let content: ReducedMessageContent[] = [];
+
+          // Coalesce live-preview updates to at most one per animation frame.
+          // A fast stream delivers a burst of events that the transport drains
+          // synchronously; calling set() on every one fires a synchronous
+          // useSyncExternalStore re-render per event within a single microtask
+          // chain, which never crosses the task boundary React uses to reset
+          // its nested-update counter — tripping "Maximum update depth
+          // exceeded". Batching by frame also lets the UI paint between chunks.
+          const canRaf = typeof requestAnimationFrame === "function";
+          let previewFrame: number | null = null;
+          const flushPreview = () => {
+            previewFrame = null;
+            set({ streamingMessage });
+          };
+          const schedulePreview = () => {
+            if (!canRaf) {
+              set({ streamingMessage });
+              return;
+            }
+            previewFrame ??= requestAnimationFrame(flushPreview);
+          };
+          const cancelPreview = () => {
+            if (previewFrame !== null) {
+              cancelAnimationFrame(previewFrame);
+              previewFrame = null;
+            }
+          };
           try {
             const response = streamThread(
               {
@@ -409,10 +436,14 @@ export function createThreadStore(
               }
               if (reduced.type === "message_start" && streamingMessage) {
                 commit(streamingMessage);
+                // The committed message now lives in `messages`; drop the stale
+                // preview so it isn't rendered twice before the next frame.
+                cancelPreview();
+                set({ streamingMessage: null });
               }
               streamingMessage = reduced.message;
               content = reduced.content;
-              set({ streamingMessage });
+              schedulePreview();
             }
             if (streamingMessage) {
               commit(streamingMessage);
@@ -429,6 +460,9 @@ export function createThreadStore(
               }
             }
           } finally {
+            // Drop any pending frame before the terminal clear so a late flush
+            // can't resurrect a stale streamingMessage after we reset to null.
+            cancelPreview();
             set({
               streamingMessage: null,
               status: "idle",
