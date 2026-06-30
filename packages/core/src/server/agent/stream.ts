@@ -57,16 +57,6 @@ export async function* streamAgent(
         request.config?.model?.reasoning === "off"
           ? undefined
           : (request.config?.model?.reasoning ?? undefined),
-      onPayload: (payload, model) => {
-        if (model.reasoning && request.config?.model?.reasoning === "off") {
-          return {
-            ...((payload ?? {}) as Record<string, unknown>),
-            thinking: {
-              type: "disabled",
-            },
-          };
-        }
-      },
     },
     signal,
     // Stream through the `Models` collection so auth is resolved by each
