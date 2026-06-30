@@ -2,7 +2,7 @@
 
 import type { FileNode } from "@llm-space/core";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { localFs } from "@/client";
@@ -12,6 +12,50 @@ import { useModels } from "@/components/model-provider";
 export const fsKeys = {
   ls: (path: string) => ["fs", "local", "ls", path] as const,
 };
+
+/** localStorage key under which the expanded directory paths live. */
+const EXPANDED_KEY = "llm-space:fs-tree:expanded";
+
+/**
+ * Deepest directory level whose expanded state is persisted across sessions.
+ * Level 1 is a direct child of the root, level 2 its child, and so on.
+ */
+const MAX_PERSISTED_DEPTH = 5;
+
+/** Path depth (segment count), used to order ancestors before descendants. */
+function _depth(path: string): number {
+  return path.split("/").length;
+}
+
+/**
+ * Read the persisted expanded paths, sorted shallowest-first so that a parent
+ * is always restored (and its listing loaded) before its descendants. Returns
+ * `[]` when storage is unavailable or malformed.
+ */
+function _loadPersistedExpanded(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(EXPANDED_KEY);
+    if (!raw) return [];
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((p): p is string => typeof p === "string")
+      .sort((a, b) => _depth(a) - _depth(b));
+  } catch {
+    return [];
+  }
+}
+
+/** Persist the expanded paths, ignoring any storage failure. */
+function _savePersistedExpanded(paths: string[]): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(EXPANDED_KEY, JSON.stringify(paths));
+  } catch {
+    // Storage unavailable (private mode, quota) ⇒ persistence is best-effort.
+  }
+}
 
 /**
  * Pick an unused "untitled" name in a directory: `untitled<ext>`, then
@@ -111,7 +155,12 @@ export interface FileSystemTree {
 export function useFileSystemTree(): FileSystemTree {
   const qc = useQueryClient();
   const modelGroups = useModels();
-  const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
+  // Restore the directories that were open last session (shallowest-first, so
+  // each parent loads before its children); entries whose directory no longer
+  // exists are pruned once their parent's listing loads.
+  const [expanded, setExpanded] = useState<Set<string>>(
+    () => new Set(_loadPersistedExpanded())
+  );
 
   // Root ("") is always queried; each expanded directory adds one query.
   const paths = useMemo(() => ["", ...expanded], [expanded]);
@@ -138,6 +187,47 @@ export function useFileSystemTree(): FileSystemTree {
     });
     return set;
   }, [paths, results]);
+
+  // Persist expanded directories up to MAX_PERSISTED_DEPTH, shallowest-first so
+  // the restore order opens ancestors before descendants.
+  useEffect(() => {
+    _savePersistedExpanded(
+      [...expanded]
+        .filter((p) => _depth(p) <= MAX_PERSISTED_DEPTH)
+        .sort((a, b) => _depth(a) - _depth(b))
+    );
+  }, [expanded]);
+
+  // Prune restored directories that no longer exist. A directory is dropped when
+  // either its parent fell away (ancestor pruned/collapsed) or its parent's
+  // listing has loaded and no longer lists it — both ignored silently, never
+  // surfaced as an error. Walking shallowest-first lets a removed ancestor
+  // cascade to its descendants within a single pass.
+  useEffect(() => {
+    setExpanded((prev) => {
+      const ordered = [...prev].sort((a, b) => _depth(a) - _depth(b));
+      const next = new Set(prev);
+      let changed = false;
+      for (const path of ordered) {
+        const parent = parentOf(path);
+        if (parent !== "" && !next.has(parent)) {
+          next.delete(path);
+          changed = true;
+          continue;
+        }
+        const siblings = nodesByPath.get(parent);
+        // Undefined ⇒ the parent's listing is still loading; leave it for now.
+        if (
+          siblings &&
+          !siblings.some((n) => n.path === path && n.type === "directory")
+        ) {
+          next.delete(path);
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [nodesByPath]);
 
   const toggle = useCallback((path: string) => {
     setExpanded((prev) => {
