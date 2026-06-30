@@ -252,7 +252,7 @@ function setupModels() {
     api: openAICompletionsApi(),
   });
   const arkForAuroraProvider = createProvider({
-    id: "ark",
+    id: "ark-aurora",
     name: "VolcEngine Ark for Aurora",
     baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
     auth: {
@@ -261,7 +261,7 @@ function setupModels() {
     models: [
       {
         id: "ep-20260519195127-5w5bl",
-        provider: "ark",
+        provider: "ark-aurora",
         name: "Doubao-Seed-2.0-pro",
         api: "openai-completions",
         baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
@@ -281,7 +281,7 @@ function setupModels() {
       },
       {
         id: "ep-20260615220137-zw7qb",
-        provider: "ark",
+        provider: "ark-aurora",
         name: "Oneloop-1.0",
         api: "openai-completions",
         baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
