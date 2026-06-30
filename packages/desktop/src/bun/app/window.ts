@@ -44,7 +44,7 @@ export const mainWindow = new BrowserWindow({
   rpc: mainWindowRPC,
   trafficLightOffset: {
     x: 2,
-    y: 2,
+    y: 16,
   },
   frame: savedFrame,
 });

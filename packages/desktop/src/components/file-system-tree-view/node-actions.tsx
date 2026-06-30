@@ -101,7 +101,7 @@ function MoreActionsTrigger() {
         onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
       >
-        <MoreHorizontal className="h-3.5 w-3.5" />
+        <MoreHorizontal className="size-4" />
       </span>
     </DropdownMenuTrigger>
   );
@@ -135,10 +135,10 @@ export function NodeActions({
       {isDir && (
         <>
           <IconAction label="New file" onClick={() => onNewFile(node)}>
-            <FilePlus className="h-3.5 w-3.5" />
+            <FilePlus className="size-4" />
           </IconAction>
           <IconAction label="New folder" onClick={() => onNewFolder(node)}>
-            <FolderPlus className="h-3.5 w-3.5" />
+            <FolderPlus className="size-4" />
           </IconAction>
         </>
       )}
@@ -192,12 +192,12 @@ export function RootActions({
   onRefresh: () => void;
 }) {
   return (
-    <span className="flex items-center gap-0.5">
+    <span className="flex items-center gap-1">
       <IconAction label="New file" onClick={onNewFile}>
-        <FilePlus className="h-3.5 w-3.5" />
+        <FilePlus className="size-4" />
       </IconAction>
       <IconAction label="New folder" onClick={onNewFolder}>
-        <FolderPlus className="h-3.5 w-3.5" />
+        <FolderPlus className="size-4" />
       </IconAction>
       <DropdownMenu>
         <MoreActionsTrigger />

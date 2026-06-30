@@ -71,6 +71,8 @@
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
   --animate-shine: shine var(--duration) infinite linear;
+  --color-tabs: #202124;
+
   @keyframes shine {
     0% {
       background-position: 0% 0%;
@@ -155,6 +157,7 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  --color-tabs: #202124;
 
   font-weight: 300;
 }

@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/empty";
 import { Spinner } from "@/components/ui/spinner";
 import { electrobun } from "@/lib/electrobun";
+import { useFullScreen } from "@/lib/use-full-screen";
 import { cn } from "@/lib/utils";
 
 import { NodeActions, RootActions } from "./node-actions";
@@ -59,6 +60,7 @@ export function FileSystemTreeView({
   /** Hand the parent the "new thread at root" trigger (e.g. for a toolbar button). */
   registerNewThread?: (fn: () => void) => void;
 }) {
+  const fullScreen = useFullScreen();
   const {
     nodesByPath,
     loadingByPath,
@@ -312,7 +314,7 @@ export function FileSystemTreeView({
           </span>
         )}
         {!isRenaming && (
-          <div className="ml-1 hidden shrink-0 group-hover:flex has-[[data-state=open]]:flex">
+          <div className="ml-1 hidden shrink-0 group-hover:flex has-data-[state=open]:flex">
             {p.item.actions}
           </div>
         )}
@@ -322,8 +324,10 @@ export function FileSystemTreeView({
 
   return (
     <div className={cn("flex h-full flex-col", className)}>
-      <div className="text-muted-foreground flex items-center justify-between px-3 py-1.5 text-xs font-medium">
-        <span>Workspace</span>
+      <header className="text-muted-foreground electrobun-webkit-app-region-drag flex h-11.5 items-center justify-between px-3 text-xs font-medium">
+        <span className={cn(fullScreen ? "opacity-100" : "opacity-0")}>
+          LLM Space 4
+        </span>
         <span>
           <RootActions
             onNewFile={() => void create("", "file")}
@@ -332,7 +336,7 @@ export function FileSystemTreeView({
             onRefresh={refresh}
           />
         </span>
-      </div>
+      </header>
 
       <div className="min-h-0 flex-1 overflow-auto">
         {isRootLoading ? (

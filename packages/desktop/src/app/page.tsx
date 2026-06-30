@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePanelRef } from "react-resizable-panels";
 
-import { AppHeader } from "@/components/app-header";
 import { FileSystemTreeView } from "@/components/file-system-tree-view";
 import { ThreadTabs, useThreadTabs } from "@/components/thread-tabs";
 import {
@@ -9,6 +8,7 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
+import { Welcome } from "@/components/welcome";
 import { electrobun } from "@/lib/electrobun";
 import { useFullScreen } from "@/lib/use-full-screen";
 
@@ -74,11 +74,6 @@ export function Page() {
 
   return (
     <div className="flex size-full flex-col">
-      <AppHeader
-        sidebarOpen={sidebarOpen}
-        fullScreen={fullScreen}
-        onToggleSidebar={toggleSidebar}
-      />
       <main className="min-h-0 grow">
         <ResizablePanelGroup>
           <ResizablePanel
@@ -99,14 +94,21 @@ export function Page() {
           </ResizablePanel>
           <ResizableHandle />
           <ResizablePanel minSize={640}>
-            <ThreadTabs
-              tabs={tabs.tabs}
-              activePath={tabs.activePath}
-              activate={tabs.activate}
-              close={tabs.close}
-              reorder={tabs.reorder}
-              onNewFile={handleNewFile}
-            />
+            {tabs.tabs.length === 0 ? (
+              <Welcome onNewFile={handleNewFile} />
+            ) : (
+              <ThreadTabs
+                tabs={tabs.tabs}
+                activePath={tabs.activePath}
+                activate={tabs.activate}
+                sidebarOpen={sidebarOpen}
+                fullScreen={fullScreen}
+                close={tabs.close}
+                reorder={tabs.reorder}
+                onNewFile={handleNewFile}
+                onToggleSidebar={toggleSidebar}
+              />
+            )}
           </ResizablePanel>
         </ResizablePanelGroup>
       </main>
