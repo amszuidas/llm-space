@@ -27,6 +27,20 @@ function uniqueUntitled(
   return { name: `untitled-${n}${ext}`, index: n };
 }
 
+/**
+ * The collision-free `_copy` name for duplicating `name` in a directory:
+ * `foo_copy`, then `foo_copy_2`, `foo_copy_3`, … A `.json` extension (the only
+ * file kind shown in the tree) is preserved on the stem.
+ */
+function uniqueCopyName(names: Set<string>, name: string): string {
+  const ext = name.endsWith(".json") ? ".json" : "";
+  const stem = ext ? name.slice(0, -ext.length) : name;
+  let candidate = `${stem}_copy${ext}`;
+  let n = 2;
+  while (names.has(candidate)) candidate = `${stem}_copy_${n++}${ext}`;
+  return candidate;
+}
+
 // --- POSIX path helpers (paths are relative to the storage root) -----------
 
 export function joinPath(parent: string, name: string): string {
@@ -79,6 +93,10 @@ export interface FileSystemTree {
   createFile: (parent: string) => Promise<string | null>;
   /** Delete a file or directory; resolves to whether it succeeded. */
   remove: (path: string) => Promise<boolean>;
+  /** Copy a file/directory beside itself as `<name>_copy`; returns the new path. */
+  duplicate: (path: string) => Promise<string | null>;
+  /** Reveal a file/directory in the OS file manager (Finder/Explorer). */
+  reveal: (path: string) => Promise<void>;
   /** Move into `destDir`; resolves to the new path, or null on no-op/error. */
   move: (src: string, destDir: string) => Promise<string | null>;
   /** Rename within the same directory; resolves to the new path, or null. */
@@ -204,6 +222,32 @@ export function useFileSystemTree(): FileSystemTree {
     [qc]
   );
 
+  const duplicate = useCallback(
+    async (path: string): Promise<string | null> => {
+      const parent = parentOf(path);
+      let dest: string;
+      try {
+        const names = new Set((await localFs.ls(parent)).map((n) => n.name));
+        dest = joinPath(parent, uniqueCopyName(names, basename(path)));
+        await localFs.cp(path, dest);
+      } catch (err) {
+        toast.error((err as Error).message);
+        return null;
+      }
+      void qc.invalidateQueries({ queryKey: fsKeys.ls(parent) });
+      return dest;
+    },
+    [qc]
+  );
+
+  const reveal = useCallback(async (path: string): Promise<void> => {
+    try {
+      await localFs.reveal(path);
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
+  }, []);
+
   const move = useCallback(
     async (src: string, destDir: string): Promise<string | null> => {
       if (!src) return null;
@@ -305,6 +349,8 @@ export function useFileSystemTree(): FileSystemTree {
     createFolder,
     createFile,
     remove,
+    duplicate,
+    reveal,
     move,
     rename,
   };

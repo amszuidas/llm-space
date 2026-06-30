@@ -36,6 +36,12 @@ import {
   useFileSystemTree,
 } from "./use-file-system-tree";
 
+/** What the OS calls its trash, for the delete-confirmation copy. */
+const TRASH_NAME =
+  typeof navigator !== "undefined" && /Win/i.test(navigator.userAgent)
+    ? "Recycle Bin"
+    : "Trash";
+
 export function FileSystemTreeView({
   className,
   onSelectFile,
@@ -64,6 +70,8 @@ export function FileSystemTreeView({
     createFolder,
     createFile,
     remove,
+    duplicate,
+    reveal,
     move,
     rename,
   } = useFileSystemTree();
@@ -82,6 +90,9 @@ export function FileSystemTreeView({
   // Path of a thread created via the "New Thread" menu: revealed (selected +
   // opened + scrolled to) once its listing loads, but never renamed.
   const [pendingThread, setPendingThread] = useState<string | null>(null);
+  // Path of a just-duplicated node: selected + scrolled to once its listing
+  // loads (no rename, no tab — works for both files and folders).
+  const [pendingDuplicate, setPendingDuplicate] = useState<string | null>(null);
 
   // Open a freshly created file in a tab and select its node in the tree.
   function revealCreatedFile(path: string) {
@@ -126,6 +137,29 @@ export function FileSystemTreeView({
     setPendingThread(null);
   }, [pendingThread, nodesByPath, onSelectFile]);
 
+  async function duplicateNode(path: string) {
+    const dest = await duplicate(path);
+    if (!dest) return;
+    const parent = parentOf(dest);
+    if (parent !== "") expand(parent);
+    setPendingDuplicate(dest);
+  }
+
+  // Once the copy shows up in its parent's listing, select + scroll to it.
+  useEffect(() => {
+    if (!pendingDuplicate) return;
+    const siblings = nodesByPath.get(parentOf(pendingDuplicate));
+    if (!siblings?.some((n) => n.path === pendingDuplicate)) return;
+    const path = pendingDuplicate;
+    setSelectedId(path);
+    requestAnimationFrame(() => {
+      document
+        .querySelector(`[data-tree-id="${CSS.escape(path)}"]`)
+        ?.scrollIntoView({ block: "nearest" });
+    });
+    setPendingDuplicate(null);
+  }, [pendingDuplicate, nodesByPath]);
+
   async function create(parent: string, kind: "file" | "folder") {
     const path =
       kind === "file" ? await createFile(parent) : await createFolder(parent);
@@ -156,7 +190,9 @@ export function FileSystemTreeView({
           node={node}
           onNewFile={(n) => void create(n.path, "file")}
           onNewFolder={(n) => void create(n.path, "folder")}
+          onReveal={(n) => void reveal(n.path)}
           onRename={(n) => startRename(n)}
+          onDuplicate={(n) => void duplicateNode(n.path)}
           onDelete={(n) => setDeleting(n.path)}
         />
       );
@@ -276,7 +312,7 @@ export function FileSystemTreeView({
           </span>
         )}
         {!isRenaming && (
-          <div className="ml-1 hidden shrink-0 group-hover:flex">
+          <div className="ml-1 hidden shrink-0 group-hover:flex has-[[data-state=open]]:flex">
             {p.item.actions}
           </div>
         )}
@@ -292,6 +328,7 @@ export function FileSystemTreeView({
           <RootActions
             onNewFile={() => void create("", "file")}
             onNewFolder={() => void create("", "folder")}
+            onReveal={() => void reveal("")}
             onRefresh={refresh}
           />
         </span>
@@ -334,11 +371,13 @@ export function FileSystemTreeView({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              Delete &ldquo;
+              Move &ldquo;
               {deleting ? basename(deleting).replace(/\.json$/, "") : ""}
-              &rdquo;?
+              &rdquo; to the {TRASH_NAME}?
             </DialogTitle>
-            <DialogDescription>This action cannot be undone.</DialogDescription>
+            <DialogDescription>
+              You can restore it from the {TRASH_NAME} later.
+            </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setDeleting(null)}>
@@ -355,7 +394,7 @@ export function FileSystemTreeView({
                   });
               }}
             >
-              Delete
+              Move to {TRASH_NAME}
             </Button>
           </DialogFooter>
         </DialogContent>

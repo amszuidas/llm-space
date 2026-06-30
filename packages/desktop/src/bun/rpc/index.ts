@@ -1,6 +1,7 @@
 import { BrowserView } from "electrobun/bun";
 
 import type { DesktopRPCType } from "../../shared/rpc";
+import { moveToTrash, revealInFileManager } from "../fs";
 import { getAvailableModelGroups } from "../models";
 import { localFs } from "../storage";
 import { abortStreamThread, runStreamThread } from "../streaming";
@@ -45,12 +46,21 @@ export const mainWindowRPC: MainWindowRPC =
           return null;
         },
         fsRm: async ({ path }) => {
-          await localFs.rm(path);
+          // Recoverable delete: move to the OS trash rather than `rm`-ing.
+          const abs = localFs.realpath(path);
+          if (abs === localFs.realpath("")) {
+            throw new Error("Cannot delete the workspace root.");
+          }
+          await moveToTrash(abs);
           return null;
         },
         fsRead: ({ path }) => localFs.read(path),
         fsWrite: async ({ path, thread }) => {
           await localFs.write(path, thread);
+          return null;
+        },
+        fsReveal: async ({ path }) => {
+          await revealInFileManager(localFs.realpath(path));
           return null;
         },
       },

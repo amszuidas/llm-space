@@ -85,6 +85,15 @@ export class LocalFileSystem implements FileSystem, ThreadStorage {
     await fs.writeFile(real, JSON.stringify(thread, null, 2), "utf8");
   }
 
+  /**
+   * The absolute filesystem path for a root-relative path, confined to the
+   * root (same rules as every operation). Useful for handing a real path to
+   * the OS — e.g. revealing a file in Finder/Explorer.
+   */
+  realpath(p: string): string {
+    return this._resolve(p);
+  }
+
   // --- internals ----------------------------------------------------------
 
   /**

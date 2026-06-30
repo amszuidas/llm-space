@@ -37,6 +37,11 @@ export class LocalFileSystemClient implements FileSystem, ThreadStorage {
     await this._rpc().request.fsWrite({ path, thread });
   }
 
+  /** Reveal a file/directory in the OS file manager (Finder/Explorer). */
+  async reveal(path: string): Promise<void> {
+    await this._rpc().request.fsReveal({ path });
+  }
+
   private _rpc() {
     const rpc = electrobun.rpc;
     if (!rpc) {

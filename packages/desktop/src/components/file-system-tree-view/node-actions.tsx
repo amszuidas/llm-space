@@ -2,14 +2,44 @@
 
 import type { FileNode } from "@llm-space/core";
 import {
+  Copy,
   FilePlus,
+  FolderOpen,
   FolderPlus,
+  MoreHorizontal,
   RefreshCw,
   TextCursorInput,
   Trash2,
 } from "lucide-react";
 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+
+const _isWindows =
+  typeof navigator !== "undefined" && /Win/i.test(navigator.userAgent);
+
+/**
+ * The OS file manager's name, for the "Reveal in …" menu label. Windows calls
+ * it Explorer; macOS (and our Linux fallback) say Finder.
+ */
+const REVEAL_LABEL = _isWindows ? "Reveal in Explorer" : "Reveal in Finder";
+
+/** The "Move to …" delete label, matching the OS trash's name. */
+const MOVE_TO_TRASH_LABEL = _isWindows
+  ? "Move to Recycle Bin"
+  : "Move to Trash";
+
+/** Shared styling for the small square hover-action triggers. */
+const actionClass = cn(
+  "text-muted-foreground hover:bg-accent hover:text-foreground",
+  "inline-flex h-5 w-5 cursor-pointer items-center justify-center rounded"
+);
 
 /**
  * A small clickable icon. Rendered as a `<span role="button">` rather than a
@@ -33,10 +63,7 @@ function IconAction({
       tabIndex={0}
       aria-label={label}
       title={label}
-      className={cn(
-        "text-muted-foreground hover:bg-accent hover:text-foreground",
-        "inline-flex h-5 w-5 cursor-pointer items-center justify-center rounded"
-      )}
+      className={actionClass}
       onPointerDown={(e) => e.stopPropagation()}
       onClick={(e) => {
         e.stopPropagation();
@@ -56,18 +83,50 @@ function IconAction({
   );
 }
 
-/** Per-row hover actions: new file / new folder (directories) + delete. */
+/**
+ * The "..." overflow menu trigger. Like {@link IconAction} it renders as a
+ * non-button element (`asChild`) so it can live inside the directory accordion
+ * trigger, and stops pointer/click propagation so opening the menu doesn't drag
+ * or toggle the row. Default behavior is left intact so Radix can open the menu.
+ */
+function MoreActionsTrigger() {
+  return (
+    <DropdownMenuTrigger asChild>
+      <span
+        role="button"
+        tabIndex={0}
+        aria-label="More actions"
+        title="More actions"
+        className={actionClass}
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <MoreHorizontal className="h-3.5 w-3.5" />
+      </span>
+    </DropdownMenuTrigger>
+  );
+}
+
+/**
+ * Per-row hover actions. Shown inline: new file / new folder (directories
+ * only). Everything else (reveal, rename, duplicate, delete) lives behind the
+ * "..." overflow menu.
+ */
 export function NodeActions({
   node,
   onNewFile,
   onNewFolder,
+  onReveal,
   onRename,
+  onDuplicate,
   onDelete,
 }: {
   node: FileNode;
   onNewFile: (node: FileNode) => void;
   onNewFolder: (node: FileNode) => void;
+  onReveal: (node: FileNode) => void;
   onRename: (node: FileNode) => void;
+  onDuplicate: (node: FileNode) => void;
   onDelete: (node: FileNode) => void;
 }) {
   const isDir = node.type === "directory";
@@ -83,24 +142,53 @@ export function NodeActions({
           </IconAction>
         </>
       )}
-      <IconAction label="Rename" onClick={() => onRename(node)}>
-        <TextCursorInput className="h-3.5 w-3.5" />
-      </IconAction>
-      <IconAction label="Delete" onClick={() => onDelete(node)}>
-        <Trash2 className="h-3.5 w-3.5" />
-      </IconAction>
+      <DropdownMenu>
+        <MoreActionsTrigger />
+        <DropdownMenuContent
+          align="end"
+          onClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <DropdownMenuItem onSelect={() => onReveal(node)}>
+            <FolderOpen />
+            {REVEAL_LABEL}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onSelect={() => onDuplicate(node)}>
+            <Copy />
+            Duplicate
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => onRename(node)}>
+            <TextCursorInput />
+            Rename
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            variant="destructive"
+            onSelect={() => onDelete(node)}
+          >
+            <Trash2 />
+            {MOVE_TO_TRASH_LABEL}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </span>
   );
 }
 
-/** New file / new folder / refresh actions for the (row-less) storage root. */
+/**
+ * New file / new folder actions for the (row-less) storage root, with reveal
+ * and refresh behind the "..." overflow menu.
+ */
 export function RootActions({
   onNewFile,
   onNewFolder,
+  onReveal,
   onRefresh,
 }: {
   onNewFile: () => void;
   onNewFolder: () => void;
+  onReveal: () => void;
   onRefresh: () => void;
 }) {
   return (
@@ -111,9 +199,20 @@ export function RootActions({
       <IconAction label="New folder" onClick={onNewFolder}>
         <FolderPlus className="h-3.5 w-3.5" />
       </IconAction>
-      <IconAction label="Refresh" onClick={onRefresh}>
-        <RefreshCw className="h-3.5 w-3.5" />
-      </IconAction>
+      <DropdownMenu>
+        <MoreActionsTrigger />
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onSelect={onReveal}>
+            <FolderOpen />
+            {REVEAL_LABEL}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onSelect={onRefresh}>
+            <RefreshCw />
+            Refresh
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </span>
   );
 }

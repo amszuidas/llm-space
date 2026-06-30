@@ -48,6 +48,8 @@ export interface DesktopRPCType {
       fsRm: { params: { path: string }; response: null };
       fsRead: { params: { path: string }; response: Thread };
       fsWrite: { params: { path: string; thread: Thread }; response: null };
+      // Reveal a file/directory in the OS file manager (Finder/Explorer).
+      fsReveal: { params: { path: string }; response: null };
     };
     // Messages the webview SENDS and the bun side handles.
     messages: {
