@@ -43,8 +43,9 @@ export interface ThreadTabs {
   reopenClosed: () => void;
 }
 
-/** localStorage key under which the open tab paths are persisted. */
+/** localStorage keys under which the open tabs and active tab are persisted. */
 const STORAGE_KEY = "llm-space:open-tabs";
+const ACTIVE_KEY = "llm-space:active-tab";
 
 /** Read the persisted tab paths; returns `[]` when unavailable or malformed. */
 function _loadPersistedTabs(): string[] {
@@ -70,6 +71,27 @@ function _savePersistedTabs(tabs: string[]): void {
   }
 }
 
+/** Read the persisted active tab path, or `null` when unset/unavailable. */
+function _loadPersistedActive(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.localStorage.getItem(ACTIVE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+/** Persist the active tab path (or clear it when `null`), ignoring failures. */
+function _savePersistedActive(path: string | null): void {
+  if (typeof window === "undefined") return;
+  try {
+    if (path === null) window.localStorage.removeItem(ACTIVE_KEY);
+    else window.localStorage.setItem(ACTIVE_KEY, path);
+  } catch {
+    // Best-effort, same as `_savePersistedTabs`.
+  }
+}
+
 /** Returns whether `path` is `base` itself or nested beneath it. */
 function _isUnder(path: string, base: string): boolean {
   return path === base || path.startsWith(`${base}/`);
@@ -91,9 +113,15 @@ async function _fileExists(path: string): Promise<boolean> {
 export function useThreadTabs(): ThreadTabs {
   const qc = useQueryClient();
   const [tabs, setTabs] = useState<string[]>(_loadPersistedTabs);
-  const [activePath, setActivePath] = useState<string | null>(
-    () => _loadPersistedTabs()[0] ?? null
-  );
+  const [activePath, setActivePath] = useState<string | null>(() => {
+    const restored = _loadPersistedTabs();
+    const active = _loadPersistedActive();
+    // Honor the persisted active tab when it's still among the open tabs;
+    // otherwise fall back to the first tab.
+    return active !== null && restored.includes(active)
+      ? active
+      : (restored[0] ?? null);
+  });
 
   // Read the latest tabs inside the async `open` without a stale closure.
   const tabsRef = useRef(tabs);
@@ -110,10 +138,16 @@ export function useThreadTabs(): ThreadTabs {
     _savePersistedTabs(tabs);
   }, [tabs]);
 
+  // Persist the active tab so it is re-focused on the next launch.
+  useEffect(() => {
+    _savePersistedActive(activePath);
+  }, [activePath]);
+
   // On mount, drop any restored tabs whose files no longer exist on disk. The
   // persistence effect above then rewrites the cleaned list back to storage.
   useEffect(() => {
     const restored = tabsRef.current;
+    const restoredActive = activePath;
     if (restored.length === 0) return;
     let cancelled = false;
     void Promise.all(
@@ -122,8 +156,12 @@ export function useThreadTabs(): ThreadTabs {
       if (cancelled) return;
       const alive = checked.filter((p): p is string => p !== null);
       if (alive.length !== restored.length) setTabs(alive);
-      // After a successful restore, focus the first surviving tab.
-      setActivePath(alive[0] ?? null);
+      // Keep the restored active tab when it survived; otherwise the first.
+      setActivePath(
+        restoredActive !== null && alive.includes(restoredActive)
+          ? restoredActive
+          : (alive[0] ?? null)
+      );
     });
     return () => {
       cancelled = true;
