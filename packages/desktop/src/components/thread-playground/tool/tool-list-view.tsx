@@ -73,7 +73,7 @@ export function ToolListView({
           onClick={openAddDialog}
         >
           <PlusIcon className="size-3" />
-          Add Tool
+          Add tool
         </Button>
       </div>
       <ToolEditorDialog

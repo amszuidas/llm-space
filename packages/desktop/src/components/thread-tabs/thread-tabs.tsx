@@ -79,7 +79,7 @@ export function ThreadTabs({
             </EmptyDescription>
           </EmptyHeader>
           <EmptyContent className="flex-row justify-center gap-2">
-            <Button onClick={onNewFile}>New Thread</Button>
+            <Button onClick={onNewFile}>New thread</Button>
           </EmptyContent>
           <Button
             variant="link"
@@ -88,7 +88,7 @@ export function ThreadTabs({
             size="sm"
           >
             <a href="#">
-              Learn More <ArrowUpRightIcon />
+              Learn more <ArrowUpRightIcon />
             </a>
           </Button>
         </Empty>
@@ -111,7 +111,7 @@ export function ThreadTabs({
         }))}
         pinnedRight={
           <div className="flex h-full items-center pt-0.5 pl-1.5">
-            <Tooltip content="New File">
+            <Tooltip content="New file">
               <Button
                 className="hover:bg-primary! rounded-full"
                 size="icon-sm"

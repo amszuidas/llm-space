@@ -37,7 +37,7 @@ export function AppHeader({
         <Tooltip
           content={
             <>
-              {sidebarOpen ? "Hide Sidebar" : "Show Sidebar"}{" "}
+              {sidebarOpen ? "Hide sidebar" : "Show sidebar"}{" "}
               <KbdGroup>
                 <Kbd className="text-foreground!">⌘ B</Kbd>
               </KbdGroup>
