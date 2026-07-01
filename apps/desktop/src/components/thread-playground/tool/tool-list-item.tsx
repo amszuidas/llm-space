@@ -46,7 +46,7 @@ function _ToolListItem({
         content={
           <div>
             <div className="font-mono">
-              <span className="font-bold text-purple-400">{tool.name}</span>
+              <span className="font-bold text-[#888cf5]">{tool.name}</span>
               <span>(</span>
               <span className="whitespace-pre-wrap">
                 {keys.length > 0
@@ -62,7 +62,7 @@ function _ToolListItem({
               <span>)</span>
             </div>
             {tool.description && (
-              <div className="whitespace-pre-wrap pt-2 text-xs opacity-60">
+              <div className="pt-2 text-xs whitespace-pre-wrap opacity-60">
                 {tool.description}
               </div>
             )}
@@ -84,7 +84,7 @@ function _ToolListItem({
           type="button"
           disabled={readonly}
           className={cn(
-            "text-muted-foreground hover:text-accent-foreground focus-visible:ring-ring/30 inline-flex h-full items-center rounded-r-md pl-1 pr-1 outline-none transition-opacity hover:opacity-100 focus-visible:ring-2",
+            "text-muted-foreground hover:text-accent-foreground focus-visible:ring-ring/30 inline-flex h-full items-center rounded-r-md pr-1 pl-1 transition-opacity outline-none hover:opacity-100 focus-visible:ring-2",
             readonly ? "opacity-0!" : "opacity-0 group-hover/tool:opacity-100"
           )}
           onClick={handleRemove}
