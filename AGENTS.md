@@ -39,9 +39,20 @@ The typed contract lives in `src/shared/rpc.ts` (`DesktopRPCType`). The bun side
 - **requests** (webview → bun, request/response): `availableModels`, `addProvider`/`updateProvider`/`removeProvider`/`setModelEnabled`/…, and the filesystem ops `fsLs`/`fsRead`/`fsWrite`/`fsMkdir`/`fsCp`/`fsMv`/`fsRm`/`fsReveal` (mirroring what were HTTP routes).
 - **messages** (fire-and-forget, both ways): agent streaming (`sendStreamThreadRequest` / `receiveStreamThreadResponse` / `abortStreamThread`), fullscreen sync, and `executeCommand` (see the command layer).
 
+Electrobun RPC has no native streaming, so agent runs **simulate a stream over fire-and-forget messages**, correlated by a per-run `streamId` (uuid):
+1. Renderer `createRpcTransport()` (`src/client/rpc-transport.ts`) sends `sendStreamThreadRequest { streamId, request }`.
+2. Bun `runStreamThread` (`bun/streaming/stream-thread.ts`) iterates `streamAgent()` and sends back `receiveStreamThreadResponse` messages keyed by `streamId`: one `{ type: "event" }` per event, then a terminal `{ type: "done" }` or `{ type: "error", message }`.
+3. The transport keeps a per-`streamId` listener that buffers events and drives an async iterator via a wake/notify promise — turning the message stream back into `for await`. `done` ends it, `error` throws, and abort (signal or early break) sends `abortStreamThread`, which aborts the bun-side `AbortController`.
+
+Downstream, `reduceMessages()` folds the events into messages.
+
 ### Data flow (the core loop)
 
-UI action → Zustand `run()` (`components/thread-playground/stores/thread-store.ts`) → `streamThread()` (core) with an injected `AgentTransport`. The desktop transport is `createRpcTransport()` (`src/client/rpc-transport.ts`), wired in once at `components/thread-tabs/thread-tab-pane.tsx`. It sends `sendStreamThreadRequest`; the bun side (`bun/streaming/stream-thread.ts` → `runStreamThread`) calls `streamAgent()` from `@llm-space/core/server`, which drives `agentLoopContinue()` from `@earendil-works/pi-agent-core`, and pushes each event back as a `receiveStreamThreadResponse` message. The transport turns those back into an async iterator → `reduceMessages()` folds events into messages → Zustand → UI re-renders.
+UI action → Zustand `run()` (`components/thread-playground/stores/thread-store.ts`) → `streamThread()` (core) with an injected `AgentTransport`. The desktop transport is `createRpcTransport()`, wired in once at `components/thread-tabs/thread-tab-pane.tsx`; it runs the RPC streaming dance above. On the bun side `runStreamThread` calls `streamAgent()` (`@llm-space/core/server`), which drives `agentLoopContinue()` from `@earendil-works/pi-agent-core`. The resulting event iterator → `reduceMessages()` → Zustand → UI re-renders.
+
+### Thread store
+
+Each open thread owns its own Zustand store (`stores/thread-store.ts`), created per-tab via `createThreadStore()` and supplied through `ThreadStoreContext` — there is **no global store**. Read it with `useThreadStore(selector)` and `useThreadStoreActions()`. State holds the `thread`, `streamingMessage`, `status`, `runHistory`, and `changeHistory`; `run()` drives a streaming turn. Undo/redo lives in `stores/thread-history.ts`: snapshots are thread *references* (copy-on-write shares unchanged substructure, so undo is an O(1) pointer move), capped by count and a retained-image-bytes budget.
 
 ### Persistence
 
@@ -63,9 +74,45 @@ Every cross-boundary user action (menus, context menus, toolbar buttons, shortcu
 - `components/` — the UI: `thread-playground/` (main editor: messages, model config, system prompt, tools, run history; Zustand store + change history under `stores/`), `thread-tabs/`, `file-system-tree-view/`, `settings/`, `command-palette.tsx`, `onboard-dialog.tsx`, `model-provider.tsx`, `code-editor/` (CodeMirror wrapper), and `ui/` (generated shadcn/ui — **don't hand-edit**, also ESLint-ignored).
 - `styles/globals.css` — Tailwind v4 + OKLch design tokens. The app is dark-themed.
 
+### Static assets (images, etc.)
+
+There are two kinds of assets, and they land in different places:
+- **Imported assets** — `import logo from "./logo.svg"`. Vite hashes these into `dist/assets`, which `electrobun.config.ts` already copies to `views/mainview/assets`. No config change needed.
+- **Public assets referenced by absolute path** — e.g. `<img src="/images/onboard.png">`. These live under **`src/mainview/public/`** (Vite's `root` is `src/mainview`, so `public/images/onboard.png` is served at `/images/onboard.png`). Vite copies `public/` verbatim into `dist/`, but a **packaged build only copies what `electrobun.config.ts` `build.copy` lists** — so any new top-level public folder must be added there, or it 404s in the built app. Today `build.copy` maps `dist/images` → `views/mainview/images`; if you add, say, `public/fonts/`, add a `"dist/fonts": "views/mainview/fonts"` entry too.
+
+Prefer dropping new images into the existing `src/mainview/public/images/` folder so no config edit is required.
+
 ## Conventions
 
 - **TypeScript**: strict, ESNext, `moduleResolution: bundler`. In `apps/desktop`, `@/*` maps to `./src/*`.
 - **Layering**: `@llm-space/core` splits browser-safe code (`./client`, `./types`, `./utils`, root `.`) from Node/Bun-only server implementations (`./server`). The desktop **bun process** consumes `@llm-space/core/server`; the **renderer** consumes the client/types entrypoints and reaches the bun process over RPC (never imports `./server`).
-- **Module-private functions** are named with a leading underscore (`_foo()`) when not exported.
+
+### Naming
+
+- **File names** are **kebab-case** for every `.ts`/`.tsx` file, including component files (e.g. `tool-call-list-item.tsx`, `model-provider.tsx`). No PascalCase or camelCase filenames. One primary component/export per file, named after the file.
+- **Identifiers**:
+  - React components, classes, types, and interfaces are **PascalCase** (`ThreadPlayground`, `ModelManager`, `Command`, `FileNode`).
+  - Functions, variables, hooks, and command `type` discriminants are **camelCase** (`runStreamThread`, `useThreadTabs`, `newFile`, `closeTab`).
+  - Module-level constants are **UPPER_SNAKE_CASE** (`DOCS_URL`, `ZOOM_STEP`, `COMMAND_META`, `BUILTIN_PROVIDERS`).
+- **Leading underscore for what's private**:
+  - Module-private (non-exported) functions: `_foo()`.
+  - Private class members: `_config`, `_models`, `_loadConfig()` (see `ModelManager`).
+  - When a wrapper re-exports a primitive under the same name, alias the primitive with a leading underscore to avoid the collision (`import { Tooltip as _Tooltip } from "./ui/tooltip"` in `components/tooltip.tsx`).
+
+### UI elements
+
+- **`ui/`** is generated shadcn/ui — **don't hand-edit** (also ESLint-ignored). Add components with `bunx --bun shadcn@latest add <component>`.
+- Prefer the **app-level wrappers** in `components/` over the raw shadcn primitives. In particular, **Tooltips must use `@/components/tooltip`** (`<Tooltip content={...}>…</Tooltip>`) — do **not** import `Tooltip`/`TooltipTrigger`/`TooltipContent` from `ui/tooltip` directly. The only direct use of the primitive is `TooltipProvider`, wired once in `app/layout.tsx`.
+- **Confirmations**: gate destructive or irreversible actions (delete a file, remove a provider) behind `ConfirmDialog` from `@/components/confirm-dialog` — don't fire them straight from a click.
+- **Menus, commands, and human-facing labels**: every cross-boundary action is a `Command` (`shared/commands.ts`); its `type` is camelCase. Labels in `COMMAND_META` are **sentence case** ("New file", "Close tab") for the command palette / context menus; native menu items in `bun/app/menu.ts` keep their own **Title Case** wording ("New File", "Close Tab"). Route everything through `executeCommand` rather than calling handlers directly.
+
+### Performance
+
+**Weigh render performance on every change.** This UI streams events and re-renders hot lists (messages, tool calls), so:
+- Wrap components that re-render often or sit in a list in `memo()`. The house pattern is `export const Foo = memo(_Foo)` — the underscore-prefixed inner holds the implementation (see `MessageListItem`, `ThinkingView`, `CodeEditor`).
+- Keep memo effective: stabilize props with `useMemo`/`useCallback` and read the store through narrow `useThreadStore(selector)` slices so a component only re-renders on the state it uses.
+- Don't reach for `memo()` reflexively on cheap, rarely-rendered components — add it where a profile or the render path shows it pays off.
+
+### Formatting
+
 - **Prettier**: 2-space indent, double quotes, semicolons, es5 trailing commas, tailwind class sorting (`prettier-plugin-tailwindcss`). Import ordering is enforced by `eslint-plugin-import-x`.
