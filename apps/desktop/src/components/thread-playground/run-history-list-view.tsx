@@ -1,10 +1,12 @@
 import type { Thread } from "@llm-space/core";
+import { XIcon } from "lucide-react";
 import { memo, useMemo } from "react";
 import { format } from "timeago.js";
 
 import { cn } from "@/lib/utils";
 
 import { useAutoAnimation } from "../../lib/use-auto-animation";
+import { Button } from "../ui/button";
 import { Item, ItemContent, ItemDescription, ItemGroup } from "../ui/item";
 
 import { useThreadStore, useThreadStoreActions } from "./stores";
@@ -32,7 +34,7 @@ function _summarizeRun(thread: Thread): string {
   return text || "Empty message";
 }
 
-function _RunHistoryListView() {
+function _RunHistoryListView({ onClose }: { onClose: () => void }) {
   const [containerRef] = useAutoAnimation();
   const runHistory = useThreadStore((s) => s.runHistory);
   const { restoreThread } = useThreadStoreActions();
@@ -40,8 +42,13 @@ function _RunHistoryListView() {
 
   return (
     <div className="flex size-full flex-col">
-      <div className="text-muted-foreground flex h-12 shrink-0 items-center border-b px-3 text-sm">
-        Run History
+      <div className="text-muted-foreground flex h-12 shrink-0 items-center justify-between border-b pl-3 text-sm">
+        <div>Run history</div>
+        <div className="pr-2">
+          <Button variant="ghost" size="icon-sm" onClick={onClose}>
+            <XIcon className="size-3" />
+          </Button>
+        </div>
       </div>
       <ItemGroup
         ref={containerRef}

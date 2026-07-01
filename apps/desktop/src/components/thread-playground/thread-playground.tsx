@@ -201,6 +201,9 @@ function ThreadPlaygroundContent({
       panel.collapse();
     }
   }, [runHistoryPanelRef]);
+  const closeHistory = useCallback(() => {
+    runHistoryPanelRef.current?.collapse();
+  }, []);
   const handleShortcuts = useShortcuts({ readonly: readonlyFromProps });
   return (
     <div
@@ -337,7 +340,7 @@ function ThreadPlaygroundContent({
             setHistoryOpen(size.inPixels > 0);
           }}
         >
-          <RunHistoryListView />
+          <RunHistoryListView onClose={closeHistory} />
         </ResizablePanel>
       </ResizablePanelGroup>
     </div>
