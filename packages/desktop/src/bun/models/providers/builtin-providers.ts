@@ -24,6 +24,48 @@ import { zaiCodingCnProvider } from "@earendil-works/pi-ai/providers/zai-coding-
 import { arkProvider } from "./ark";
 import { arkCodingPlanProvider } from "./ark-coding-plan";
 
+/** Static, non-`Provider` metadata for a builtin provider. */
+export interface BuiltinProviderMeta {
+  /** The provider's public homepage. Optional — omitted when uncertain. */
+  websiteLink?: string;
+}
+
+/**
+ * Supplementary metadata for the builtin providers, keyed by provider id.
+ * `websiteLink` is filled only where the URL is known with confidence.
+ */
+export const BUILTIN_PROVIDER_META: Record<string, BuiltinProviderMeta> = {
+  "amazon-bedrock": { websiteLink: "https://aws.amazon.com/bedrock/" },
+  "ant-ling": { websiteLink: "https://www.ant-ling.com/" },
+  anthropic: { websiteLink: "https://claude.com/platform/api" },
+  ark: { websiteLink: "https://www.volcengine.com/product/ark" },
+  "ark-coding-plan": {
+    websiteLink:
+      "https://www.volcengine.com/activity/codingplan?utm_campaign=deer_flow&utm_content=deer_flow&utm_medium=devrel&utm_source=OWO&utm_term=deer_flow",
+  },
+  "azure-openai-responses": {
+    websiteLink:
+      "https://azure.microsoft.com/en-us/products/ai-services/openai-service",
+  },
+  deepseek: { websiteLink: "https://www.deepseek.com" },
+  google: { websiteLink: "https://ai.google.dev" },
+  groq: { websiteLink: "https://groq.com" },
+  huggingface: { websiteLink: "https://huggingface.co" },
+  minimax: { websiteLink: "https://www.minimax.io" },
+  "minimax-cn": { websiteLink: "https://www.minimaxi.com" },
+  moonshotai: { websiteLink: "https://www.moonshot.ai" },
+  "moonshotai-cn": { websiteLink: "https://www.moonshot.cn" },
+  nvidia: { websiteLink: "https://build.nvidia.com" },
+  openai: { websiteLink: "https://openai.com" },
+  "openai-codex": { websiteLink: "https://openai.com/codex" },
+  openrouter: { websiteLink: "https://openrouter.ai" },
+  "vercel-ai-gateway": { websiteLink: "https://vercel.com/ai-gateway" },
+  xai: { websiteLink: "https://x.ai" },
+  xiaomi: { websiteLink: "https://mimo.xiaomi.com/zh" },
+  zai: { websiteLink: "https://z.ai" },
+  "zai-coding-cn": { websiteLink: "https://z.ai/subscribe" },
+};
+
 /** Factory for each builtin provider, keyed by provider id. */
 export const BUILTIN_PROVIDERS: Record<string, Provider> = {
   "amazon-bedrock": amazonBedrockProvider(),

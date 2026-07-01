@@ -101,13 +101,18 @@ export function useCommands(): CommandContextValue {
  * trampolines are registered once (keyed off the initial render's command set,
  * which is static per component) and always dispatch to the latest `handlers`,
  * so passing fresh closures every render is fine and never goes stale.
+ *
+ * Pass `enabled: false` to skip registration while some condition doesn't hold
+ * (e.g. an inactive tab whose handler must not win the single-slot registry);
+ * toggling it re-registers / unregisters cleanly.
  */
-export function useRegisterCommands(handlers: CommandHandlers) {
+export function useRegisterCommands(handlers: CommandHandlers, enabled = true) {
   const { registerCommandHandlers } = useCommands();
   const latest = useRef(handlers);
   latest.current = handlers;
 
   useEffect(() => {
+    if (!enabled) return;
     const keys = Object.keys(latest.current) as CommandType[];
     const trampolines: CommandHandlers = {};
     for (const key of keys) {
@@ -119,5 +124,5 @@ export function useRegisterCommands(handlers: CommandHandlers) {
         ]?.(args);
     }
     return registerCommandHandlers(trampolines);
-  }, [registerCommandHandlers]);
+  }, [registerCommandHandlers, enabled]);
 }

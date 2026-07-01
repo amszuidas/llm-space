@@ -17,6 +17,12 @@ import { electrobun } from "@/lib/electrobun";
 interface ModelContextValue {
   providers: ModelProviderGroup[];
   removeProvider: (providerId: string) => Promise<void>;
+  addProvider: (providerId: string) => Promise<void>;
+  updateProvider: (
+    providerId: string,
+    fields: { apiKey: string | null }
+  ) => Promise<void>;
+  refresh: () => Promise<void>;
   getModel: (ref: { id: string; provider: string }) => pi.Model<pi.Api> | null;
 }
 
@@ -51,23 +57,42 @@ export function ModelProvider({
     setProviders(updated);
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
+  const addProvider = useCallback(async (providerId: string) => {
+    if (!electrobun.rpc) {
+      throw new Error("Electrobun RPC is not initialized");
+    }
+    const updated = await electrobun.rpc.request.addProvider({ providerId });
+    setProviders(updated);
+  }, []);
 
-    void fetcher()
-      .then((data) => {
-        if (!cancelled) {
-          setProviders(data);
-        }
-      })
-      .catch((error: unknown) => {
-        console.error("Failed to fetch models", error);
+  const updateProvider = useCallback(
+    async (providerId: string, fields: { apiKey: string | null }) => {
+      if (!electrobun.rpc) {
+        throw new Error("Electrobun RPC is not initialized");
+      }
+      const updated = await electrobun.rpc.request.updateProvider({
+        providerId,
+        ...fields,
       });
+      setProviders(updated);
+    },
+    []
+  );
 
-    return () => {
-      cancelled = true;
-    };
+  // Re-fetch the providers from the main process. Callers invoke this to force a
+  // fresh read (e.g. every time the model dropdown opens) — the result is never
+  // cached beyond the current render.
+  const refresh = useCallback(async () => {
+    try {
+      setProviders(await fetcher());
+    } catch (error) {
+      console.error("Failed to fetch models", error);
+    }
   }, [fetcher]);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
 
   const contextValue = useMemo((): ModelContextValue | null => {
     if (!providers) {
@@ -77,9 +102,12 @@ export function ModelProvider({
     return {
       providers,
       removeProvider,
+      addProvider,
+      updateProvider,
+      refresh,
       getModel: (ref) => index.get(`${ref.provider}:${ref.id}`) ?? null,
     };
-  }, [providers, removeProvider]);
+  }, [providers, removeProvider, addProvider, updateProvider, refresh]);
 
   if (!contextValue) {
     return fallback;
@@ -106,6 +134,31 @@ export function useModels(): ModelProviderGroup[] {
 
 export function useRemoveProvider(): (providerId: string) => Promise<void> {
   return useModelProvider().removeProvider;
+}
+
+export function useAddProvider(): (providerId: string) => Promise<void> {
+  return useModelProvider().addProvider;
+}
+
+/** Fetch the builtin providers (with `apiKeyDetected` flags) from the main process. */
+export function useFetchBuiltinProviders(): () => Promise<ModelProviderGroup[]> {
+  return useCallback(async () => {
+    if (!electrobun.rpc) {
+      throw new Error("Electrobun RPC is not initialized");
+    }
+    return electrobun.rpc.request.builtinProviders({});
+  }, []);
+}
+
+export function useUpdateProvider(): (
+  providerId: string,
+  fields: { apiKey: string | null }
+) => Promise<void> {
+  return useModelProvider().updateProvider;
+}
+
+export function useRefreshModels(): () => Promise<void> {
+  return useModelProvider().refresh;
 }
 
 export function useModel(ref: {

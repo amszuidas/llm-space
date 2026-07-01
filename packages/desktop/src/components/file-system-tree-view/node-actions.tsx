@@ -9,6 +9,7 @@ import {
   MoreHorizontal,
   RefreshCw,
   SettingsIcon,
+  SquareChevronRightIcon,
   TextCursorInput,
   Trash2,
 } from "lucide-react";

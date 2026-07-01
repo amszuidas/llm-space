@@ -5,6 +5,7 @@ import { Boxes, SlidersHorizontal, XIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type { SettingsTab } from "@/shared/commands";
 
 import { GeneralPage } from "./general-page";
 import { ModelsPage } from "./models-page";
@@ -22,25 +23,35 @@ const PAGES = [
 export function SettingsDialog({
   open,
   onOpenChange,
+  tab,
+  onTabChange,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  tab: SettingsTab;
+  onTabChange: (tab: SettingsTab) => void;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showCloseButton={false} className="gap-0 p-0 sm:max-w-3xl">
+      <DialogContent
+        className="max-w-5xl! gap-0 p-0"
+        onInteractOutside={(event) => {
+          event.preventDefault();
+        }}
+        onPointerDownOutside={(event) => {
+          event.preventDefault();
+        }}
+      >
         <Tabs
-          className="h-[600px] gap-0"
+          className="h-[75vh] w-full gap-0"
           orientation="vertical"
-          defaultValue="general"
+          value={tab}
+          onValueChange={(value) => onTabChange(value as SettingsTab)}
         >
-          <aside className="bg-muted/30 flex w-56 shrink-0 flex-col gap-2 border-r p-3">
-            <DialogClose asChild>
-              <Button variant="ghost" size="icon-sm">
-                <XIcon />
-                <span className="sr-only">Close</span>
-              </Button>
-            </DialogClose>
+          <aside className="bg-muted/30 flex w-50 shrink-0 flex-col gap-2 border-r p-3">
+            <header>
+              <div className="text-base font-medium">Settings</div>
+            </header>
             <TabsList className="h-fit w-full flex-col gap-0.5 bg-transparent p-0">
               {PAGES.map(({ value, label, icon: Icon }) => (
                 <TabsTrigger key={value} value={value} className="w-full">

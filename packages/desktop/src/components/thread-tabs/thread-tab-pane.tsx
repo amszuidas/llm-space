@@ -62,6 +62,7 @@ export function ThreadTabPane({ path, active }: ThreadTabPaneProps) {
         className="bg-background size-full shadow-lg"
         loading={isLoading}
         initialValue={thread}
+        active={active}
         transport={rpcTransport}
         onChange={handleChange}
       />

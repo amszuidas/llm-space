@@ -1,9 +1,12 @@
-import type { BrowserWindow } from "electrobun/bun";
+import { Utils, type BrowserWindow } from "electrobun/bun";
 
 import { COMMAND_META, type Command } from "../shared/commands";
 
 import { saveZoom } from "./app/window-state";
 import { mainWindowRPC } from "./rpc";
+
+/** The documentation website opened by the `openDocument` command. */
+const DOCS_URL = "https://my.feishu.cn/wiki/QnGGwGkoti8nwok2cEOc2oMvnrd";
 
 const ZOOM_STEP = 0.1;
 const ZOOM_MIN = 0.3;
@@ -41,6 +44,15 @@ export function executeCommandInBun(command: Command, window: BrowserWindow) {
     }
     case "reload": {
       window.webview?.executeJavascript("location.reload()");
+      return;
+    }
+    case "openLink": {
+      Utils.openExternal(command.args.url);
+      return;
+    }
+    case "openDocument": {
+      // `path` is ignored for now — always open the docs home.
+      Utils.openExternal(DOCS_URL);
       return;
     }
     default:

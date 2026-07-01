@@ -74,9 +74,23 @@ export interface ReopenClosedTabCommand
 export interface ToggleSidebarCommand
   extends GenericCommand<"toggleSidebar"> {}
 
-/** Open the Settings dialog. */
+/** Which Settings tab to show. */
+export type SettingsTab = "general" | "models";
+
+/** Open the Settings dialog, optionally on a specific `tab`. */
 export interface OpenSettingsCommand
-  extends GenericCommand<"openSettings"> {}
+  extends GenericCommand<"openSettings", { tab?: SettingsTab }> {}
+
+/** Open the Settings dialog directly on the Models tab. */
+export interface OpenModelSettingsCommand
+  extends GenericCommand<"openModelSettings"> {}
+
+/** Open the command palette. */
+export interface OpenCommandPaletteCommand
+  extends GenericCommand<"openCommandPalette"> {}
+
+/** Run the active thread. No-op when there is no active thread tab. */
+export interface RunThreadCommand extends GenericCommand<"runThread"> {}
 
 // --- Window (bun-side) -----------------------------------------------------
 
@@ -88,6 +102,17 @@ export interface ZoomOutCommand extends GenericCommand<"zoomOut"> {}
 export interface ResetZoomCommand extends GenericCommand<"resetZoom"> {}
 /** Reload the webview. */
 export interface ReloadCommand extends GenericCommand<"reload"> {}
+
+/** Open a URL in the user's default browser (via the OS). */
+export interface OpenLinkCommand
+  extends GenericCommand<"openLink", { url: string }> {}
+
+/**
+ * Open the documentation website in the user's default browser. `path` may point
+ * at a specific doc page (currently ignored — always opens the docs home).
+ */
+export interface OpenDocumentCommand
+  extends GenericCommand<"openDocument", { path?: string }> {}
 
 /** The discriminated union of every command. */
 export type Command =
@@ -104,10 +129,15 @@ export type Command =
   | ReopenClosedTabCommand
   | ToggleSidebarCommand
   | OpenSettingsCommand
+  | OpenModelSettingsCommand
+  | OpenCommandPaletteCommand
+  | RunThreadCommand
   | ZoomInCommand
   | ZoomOutCommand
   | ResetZoomCommand
-  | ReloadCommand;
+  | ReloadCommand
+  | OpenLinkCommand
+  | OpenDocumentCommand;
 
 /** The `type` string of any command. */
 export type CommandType = Command["type"];
@@ -142,8 +172,13 @@ export const COMMAND_META: Record<
   reopenClosedTab: { label: "Reopen closed tab", target: "webview" },
   toggleSidebar: { label: "Toggle sidebar", target: "webview" },
   openSettings: { label: "Settings", target: "webview" },
+  openModelSettings: { label: "Configure model settings", target: "webview" },
+  openCommandPalette: { label: "Command palette", target: "webview" },
+  runThread: { label: "Run thread", target: "webview" },
   zoomIn: { label: "Zoom in", target: "bun" },
   zoomOut: { label: "Zoom out", target: "bun" },
   resetZoom: { label: "Reset zoom", target: "bun" },
   reload: { label: "Reload", target: "bun" },
+  openLink: { label: "Open link", target: "bun" },
+  openDocument: { label: "Documents", target: "bun" },
 };

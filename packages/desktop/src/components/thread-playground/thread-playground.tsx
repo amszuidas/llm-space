@@ -2,9 +2,10 @@
 
 import type { AgentTransport, Thread } from "@llm-space/core";
 import { HistoryIcon, PlayIcon, Redo2Icon, Undo2Icon } from "lucide-react";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePanelRef } from "react-resizable-panels";
 
+import { useRegisterCommands } from "@/commands";
 import { cn } from "@/lib/utils";
 
 import { Tooltip } from "../tooltip";
@@ -39,6 +40,12 @@ export interface ThreadPlaygroundProps {
   className?: string;
   initialValue: Thread;
   readonly?: boolean;
+  /**
+   * Whether this playground belongs to the active tab. Only the active one
+   * registers the `runThread` command handler (the command registry keeps a
+   * single handler per type), so a global run always targets the active tab.
+   */
+  active?: boolean;
   /** The streaming transport used by runs (e.g. HTTP or Electrobun RPC). */
   transport?: AgentTransport;
 
@@ -46,6 +53,13 @@ export interface ThreadPlaygroundProps {
   onStreamingStart?: () => void;
   onStreamingEnd?: () => void;
 }
+
+/**
+ * How long the skeleton stays overlaid on top of the real content after it
+ * mounts. The real ThreadPlayground takes roughly this long to render, so the
+ * overlay hides that first paint instead of flashing an unfinished UI.
+ */
+const SKELETON_OVERLAY_MS = 500;
 
 export function ThreadPlayground({
   loading,
@@ -63,11 +77,34 @@ export function ThreadPlayground({
     throw new Error("initialValue is required when not loading");
   }
   return (
-    <_ThreadPlayground
+    <_ThreadPlaygroundWithOverlay
       className={className}
       initialValue={initialValue}
       {...props}
     />
+  );
+}
+
+/**
+ * Mounts the real ThreadPlayground and keeps the skeleton overlaid on top for
+ * {@link SKELETON_OVERLAY_MS} while it does its (relatively slow) first render.
+ */
+function _ThreadPlaygroundWithOverlay({
+  className,
+  ...props
+}: ThreadPlaygroundProps) {
+  const [showOverlay, setShowOverlay] = useState(true);
+  useEffect(() => {
+    const timer = setTimeout(() => setShowOverlay(false), SKELETON_OVERLAY_MS);
+    return () => clearTimeout(timer);
+  }, []);
+  return (
+    <div className={cn("relative", className)}>
+      <_ThreadPlayground className="size-full" {...props} />
+      {showOverlay && (
+        <ThreadPlaygroundSkeleton className="bg-background absolute inset-0" />
+      )}
+    </div>
   );
 }
 
@@ -100,6 +137,7 @@ const RUN_HISTORY_PANEL_SIZE = "16rem";
 function ThreadPlaygroundContent({
   className,
   readonly: readonlyFromProps = false,
+  active = false,
 }: Omit<
   ThreadPlaygroundProps,
   "initialValue" | "onChange" | "onStreamingStart" | "onStreamingEnd"
@@ -115,6 +153,17 @@ function ThreadPlaygroundContent({
   const handleRun = useCallback(async () => {
     await run();
   }, []);
+  // Expose run as a command, but only from the active tab so a global
+  // `runThread` targets it (and no-ops when no tab is active). Skip while
+  // already running to avoid run()'s "already running" throw.
+  useRegisterCommands(
+    {
+      runThread: () => {
+        if (status !== "running") void run();
+      },
+    },
+    active
+  );
   const handleStop = useCallback(() => {
     try {
       abort();

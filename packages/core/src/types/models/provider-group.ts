@@ -5,4 +5,9 @@ export interface ModelProviderGroup {
   name: string;
   models: readonly pi.Model<pi.Api>[];
   apiKeyDetected?: boolean;
+  apiKey?: string;
+  websiteLink?: string;
+  websiteURL?: string;
+  apiKeyURL?: string;
+  iconURL?: string;
 }

@@ -42,6 +42,18 @@ ApplicationMenu.setApplicationMenu([
         accelerator: "CommandOrControl+N",
       },
       {
+        label: "New Folder",
+        action: "newFolder",
+        accelerator: "CommandOrControl+Shift+N",
+      },
+      {
+        type: "divider",
+      },
+      {
+        label: "Refresh Workspace",
+        action: "refreshTree",
+      },
+      {
         type: "divider",
       },
       {
@@ -84,6 +96,12 @@ ApplicationMenu.setApplicationMenu([
   {
     label: "View",
     submenu: [
+      {
+        label: "Command Palette...",
+        action: "commandPalette",
+        accelerator: "CommandOrControl+Shift+P",
+      },
+      { type: "divider" },
       {
         label: "Toggle Sidebar",
         action: "toggleSidebar",
@@ -143,6 +161,7 @@ ApplicationMenu.setApplicationMenu([
       },
       {
         label: "View Documentation",
+        action: "openDocument",
         role: "showHelp",
       },
     ],
@@ -161,12 +180,16 @@ const MENU_ACTION_COMMANDS: Record<string, Command> = {
   zoomOut: { type: "zoomOut", args: {} },
   resetZoom: { type: "resetZoom", args: {} },
   toggleSidebar: { type: "toggleSidebar", args: {} },
+  commandPalette: { type: "openCommandPalette", args: {} },
   settings: { type: "openSettings", args: {} },
   newThread: { type: "newFile", args: {} },
+  newFolder: { type: "newFolder", args: {} },
+  refreshTree: { type: "refreshTree", args: {} },
   closeTab: { type: "closeTab", args: {} },
   closeOtherTabs: { type: "closeOtherTabs", args: {} },
   closeAllTabs: { type: "closeAllTabs", args: {} },
   reopenClosedTabs: { type: "reopenClosedTab", args: {} },
+  openDocument: { type: "openDocument", args: {} },
 };
 
 /**

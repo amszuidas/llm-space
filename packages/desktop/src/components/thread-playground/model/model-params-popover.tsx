@@ -1,7 +1,7 @@
 "use client";
 
 import { type ReasoningLevel } from "@llm-space/core";
-import { InfoIcon, SlidersHorizontal } from "lucide-react";
+import { InfoIcon, SettingsIcon, SlidersHorizontal } from "lucide-react";
 import {
   type ReactNode,
   useCallback,
@@ -10,6 +10,7 @@ import {
   useState,
 } from "react";
 
+import { useCommands } from "@/commands";
 import { cn } from "@/lib/utils";
 
 import { Tooltip } from "../../tooltip";
@@ -133,6 +134,12 @@ export function ModelParamsPopover({
     }
   }, [draftMaxTokens, maxTokens, updateModelParams]);
 
+  const { executeCommand } = useCommands();
+  const handleConfigModelSettings = useCallback(() => {
+    setPopoverOpen(false);
+    executeCommand({ type: "openSettings", args: { tab: "models" } });
+  }, [setPopoverOpen, executeCommand]);
+
   return (
     <div
       className={cn(
@@ -163,7 +170,20 @@ export function ModelParamsPopover({
         </Tooltip>
         <PopoverContent align="end" className="flex w-72 flex-col p-4">
           <PopoverHeader>
-            <PopoverTitle>Model settings</PopoverTitle>
+            <PopoverTitle className="flex items-center justify-between">
+              <div>Model settings</div>
+              <div>
+                <Tooltip content="Configure model settings">
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    onClick={handleConfigModelSettings}
+                  >
+                    <SettingsIcon className="size-3.5" />
+                  </Button>
+                </Tooltip>
+              </div>
+            </PopoverTitle>
           </PopoverHeader>
           <ParamField
             label="Temperature"

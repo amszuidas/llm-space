@@ -1,8 +1,9 @@
 "use client";
 
 import { ArrowUpRightIcon, SparklesIcon } from "lucide-react";
-import { useCallback } from "react";
+import { useCallback, type MouseEvent } from "react";
 
+import { useCommands } from "@/commands";
 import { electrobun } from "@/lib/electrobun";
 import { cn } from "@/lib/utils";
 
@@ -19,13 +20,23 @@ import {
 interface WelcomeProps {
   className?: string;
   onNewFile?: () => void;
-  onSettings?: () => void;
+  onModels?: () => void;
 }
 
-export function Welcome({ className, onNewFile, onSettings }: WelcomeProps) {
+export function Welcome({ className, onNewFile, onModels }: WelcomeProps) {
+  const { executeCommand } = useCommands();
+
   const handleHeaderDoubleClick = useCallback(() => {
     void electrobun.rpc?.request.toggleMaximized({});
   }, []);
+
+  const handleLearnMore = useCallback(
+    (event: MouseEvent<HTMLAnchorElement>) => {
+      event.preventDefault();
+      executeCommand({ type: "openDocument", args: {} });
+    },
+    [executeCommand]
+  );
 
   return (
     <div
@@ -53,8 +64,8 @@ export function Welcome({ className, onNewFile, onSettings }: WelcomeProps) {
           <Button className="w-24" onClick={onNewFile}>
             New thread
           </Button>
-          <Button className="w-24" variant="secondary" onClick={onSettings}>
-            Settings
+          <Button className="w-24" variant="secondary" onClick={onModels}>
+            Models
           </Button>
         </EmptyContent>
         <Button
@@ -63,7 +74,7 @@ export function Welcome({ className, onNewFile, onSettings }: WelcomeProps) {
           className="text-muted-foreground"
           size="sm"
         >
-          <a href="#">
+          <a href="#" onClick={handleLearnMore}>
             Learn more <ArrowUpRightIcon />
           </a>
         </Button>

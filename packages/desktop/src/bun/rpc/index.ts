@@ -1,3 +1,4 @@
+import { ModelProviderGroup } from "@llm-space/core";
 import { BrowserView } from "electrobun/bun";
 
 import type { DesktopRPCType } from "../../shared/rpc";
@@ -8,11 +9,15 @@ import { abortStreamThread, runStreamThread } from "../streaming";
 
 async function getModelProviderGroups() {
   const models = await modelManager.getAvailableModels();
-  return models.getProviders().map((provider) => ({
-    id: provider.id,
-    name: provider.name,
-    models: provider.getModels(),
-  }));
+  return Promise.all(
+    models.getProviders().map(async (provider) => ({
+      id: provider.id,
+      name: provider.name,
+      models: provider.getModels(),
+      apiKey: await modelManager.getApiKey(provider.id, false),
+      websiteLink: modelManager.getWebsiteLink(provider.id),
+    }))
+  ) as Promise<ModelProviderGroup[]>;
 }
 
 /**
@@ -30,6 +35,15 @@ export const mainWindowRPC: MainWindowRPC =
         availableModels: async () => getModelProviderGroups(),
         removeProvider: async ({ providerId }) => {
           modelManager.removeProvider(providerId);
+          return getModelProviderGroups();
+        },
+        builtinProviders: async () => modelManager.getBuiltinProviders(),
+        addProvider: async ({ providerId }) => {
+          modelManager.addBuiltInProvider({ id: providerId });
+          return getModelProviderGroups();
+        },
+        updateProvider: async ({ providerId, apiKey }) => {
+          modelManager.updateProvider(providerId, { apiKey });
           return getModelProviderGroups();
         },
         toggleMaximized: async () => {

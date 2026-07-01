@@ -37,6 +37,20 @@ export interface DesktopRPCType {
         params: { providerId: string };
         response: ModelProviderGroup[];
       };
+      // The builtin providers shipped with the app, each flagged with whether an
+      // API key was auto-detected in the environment.
+      builtinProviders: {
+        params: Record<string, never>;
+        response: ModelProviderGroup[];
+      };
+      addProvider: {
+        params: { providerId: string };
+        response: ModelProviderGroup[];
+      };
+      updateProvider: {
+        params: { providerId: string; apiKey: string | null };
+        response: ModelProviderGroup[];
+      };
       toggleMaximized: {
         params: Record<string, never>;
         response: { maximized: boolean };

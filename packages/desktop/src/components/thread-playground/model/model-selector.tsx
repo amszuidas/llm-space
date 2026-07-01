@@ -1,11 +1,13 @@
 "use client";
 
 import { type ModelConfig } from "@llm-space/core";
-import { useCallback, useMemo, useRef } from "react";
+import { SettingsIcon } from "lucide-react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
+import { useCommands } from "@/commands";
 import { cn } from "@/lib/utils";
 
-import { useModels } from "../../model-provider";
+import { useModels, useRefreshModels } from "../../model-provider";
 import {
   Combobox,
   ComboboxCollection,
@@ -16,6 +18,7 @@ import {
   ComboboxItem,
   ComboboxLabel,
   ComboboxList,
+  ComboboxSeparator,
 } from "../../ui/combobox";
 import { useThreadStoreActions } from "../stores";
 
@@ -45,14 +48,20 @@ export function ModelSelector({
   onOpenChange?: (open: boolean) => void;
 }) {
   const providers = useModels();
+  const refreshModels = useRefreshModels();
   const { updateModel } = useThreadStoreActions();
+  const { executeCommand } = useCommands();
+  const [open, setOpen] = useState(false);
 
   const items = useMemo(
     () =>
-      providers.map((group) => ({
-        name: group.name,
-        items: group.models.map((model) => toModelKey(model)),
-      })),
+      [...providers]
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((group) => ({
+          name: group.name,
+          items: group.models.map((model) => toModelKey(model)),
+        }))
+        .filter((group) => group.items.length > 0),
     [providers]
   );
 
@@ -68,14 +77,23 @@ export function ModelSelector({
 
   const inputRef = useRef<HTMLInputElement>(null);
   const handleOpenChange = useCallback(
-    (open: boolean) => {
-      if (!open) {
+    (nextOpen: boolean) => {
+      setOpen(nextOpen);
+      if (nextOpen) {
+        // Always read fresh from the main process on open — never cache.
+        void refreshModels();
+      } else {
         inputRef.current?.blur();
       }
-      onOpenChange?.(open);
+      onOpenChange?.(nextOpen);
     },
-    [onOpenChange]
+    [onOpenChange, refreshModels]
   );
+
+  const configureModels = useCallback(() => {
+    handleOpenChange(false);
+    executeCommand({ type: "openSettings", args: { tab: "models" } });
+  }, [executeCommand, handleOpenChange]);
 
   const filterItems = useCallback(
     (itemValue: string, query: string) => {
@@ -94,6 +112,7 @@ export function ModelSelector({
       disabled={readonly}
       itemToStringLabel={(itemValue) => modelLabels.get(itemValue) ?? itemValue}
       filter={filterItems}
+      open={open}
       onOpenChange={handleOpenChange}
       onValueChange={(nextValue) => {
         if (!nextValue || readonly) {
@@ -140,6 +159,18 @@ export function ModelSelector({
             </ComboboxGroup>
           )}
         </ComboboxList>
+        <ComboboxSeparator className="mx-1 my-0" />
+        <div className="w-full p-1">
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={configureModels}
+            className="hover:bg-accent hover:text-accent-foreground text-muted-foreground flex min-h-7 w-full cursor-default items-center gap-2 rounded-md px-2 py-1 text-xs/relaxed outline-hidden select-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-3.5"
+          >
+            <SettingsIcon />
+            Configure models...
+          </button>
+        </div>
       </ComboboxContent>
     </Combobox>
   );

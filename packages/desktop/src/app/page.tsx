@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { usePanelRef } from "react-resizable-panels";
 
 import { CommandProvider, useCommands, useRegisterCommands } from "@/commands";
+import { CommandPalette } from "@/components/command-palette";
 import { FileSystemTreeView } from "@/components/file-system-tree-view";
 import { SettingsDialog } from "@/components/settings/settings-dialog";
 import { ThreadTabs, useThreadTabs } from "@/components/thread-tabs";
@@ -13,6 +14,7 @@ import {
 import { Welcome } from "@/components/welcome";
 import { electrobun } from "@/lib/electrobun";
 import { useFullScreen } from "@/lib/use-full-screen";
+import type { SettingsTab } from "@/shared/commands";
 
 export function Page() {
   return (
@@ -21,6 +23,19 @@ export function Page() {
     </CommandProvider>
   );
 }
+
+// Commands that need context the palette can't supply (a file path / URL) or
+// that make no sense to invoke from the palette itself.
+const COMMAND_PALETTE_BLACKLIST = [
+  "renameFile",
+  "duplicateFile",
+  "deleteFile",
+  "revealFile",
+  "openLink",
+  "openCommandPalette",
+  "closeTab",
+  "closeOtherTabs",
+];
 
 function PageInner() {
   const tabs = useThreadTabs();
@@ -42,6 +57,8 @@ function PageInner() {
   }, [sidebarPanelRef]);
 
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsTab, setSettingsTab] = useState<SettingsTab>("general");
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
 
   // Register the command handlers backed by page-level state (tabs, sidebar,
   // settings). `newFile` / `newFolder` / the tree ops are registered by the
@@ -58,7 +75,15 @@ function PageInner() {
     closeAllTabs: () => closeAll(),
     reopenClosedTab: () => void reopenClosed(),
     toggleSidebar: () => toggleSidebar(),
-    openSettings: () => setSettingsOpen(true),
+    openSettings: ({ tab }) => {
+      if (tab) setSettingsTab(tab);
+      setSettingsOpen(true);
+    },
+    openModelSettings: () => {
+      setSettingsTab("models");
+      setSettingsOpen(true);
+    },
+    openCommandPalette: () => setCommandPaletteOpen(true),
   });
 
   // Bridge commands dispatched from the bun process (native menu / shortcuts)
@@ -96,8 +121,11 @@ function PageInner() {
             {tabs.tabs.length === 0 ? (
               <Welcome
                 onNewFile={() => executeCommand({ type: "newFile", args: {} })}
-                onSettings={() =>
-                  executeCommand({ type: "openSettings", args: {} })
+                onModels={() =>
+                  executeCommand({
+                    type: "openSettings",
+                    args: { tab: "models" },
+                  })
                 }
               />
             ) : (
@@ -111,9 +139,7 @@ function PageInner() {
                   executeCommand({ type: "closeTab", args: { path } })
                 }
                 reorder={tabs.reorder}
-                onNewFile={() =>
-                  executeCommand({ type: "newFile", args: {} })
-                }
+                onNewFile={() => executeCommand({ type: "newFile", args: {} })}
                 onToggleSidebar={() =>
                   executeCommand({ type: "toggleSidebar", args: {} })
                 }
@@ -122,7 +148,17 @@ function PageInner() {
           </ResizablePanel>
         </ResizablePanelGroup>
       </main>
-      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+      <SettingsDialog
+        tab={settingsTab}
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        onTabChange={setSettingsTab}
+      />
+      <CommandPalette
+        open={commandPaletteOpen}
+        onOpenChange={setCommandPaletteOpen}
+        blacklist={COMMAND_PALETTE_BLACKLIST}
+      />
     </div>
   );
 }

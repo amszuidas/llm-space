@@ -11,7 +11,10 @@ import {
 import { ModelProviderGroup } from "@llm-space/core";
 import { getSettingsDir } from "@llm-space/core/server";
 
-import { BUILTIN_PROVIDERS } from "./providers/builtin-providers";
+import {
+  BUILTIN_PROVIDER_META,
+  BUILTIN_PROVIDERS,
+} from "./providers/builtin-providers";
 import type { ModelsConfig } from "./types";
 
 /**
@@ -45,17 +48,12 @@ export class ModelManager {
       name: provider.name,
       models: [],
       apiKeyDetected: detected.includes(provider.id),
+      websiteURL: this.getWebsiteLink(provider.id),
     }));
   }
 
   /** Add a builtin provider to `settings/models.json`. */
-  addBuiltInProvider({
-    id,
-    apiKey,
-  }: {
-    id: string;
-    apiKey?: string;
-  }): void {
+  addBuiltInProvider({ id, apiKey }: { id: string; apiKey?: string }): void {
     if (!(id in BUILTIN_PROVIDERS)) {
       throw new Error(`Unknown builtin provider: ${id}`);
     }
@@ -70,6 +68,30 @@ export class ModelManager {
       ...(apiKey !== undefined ? { apiKey } : {}),
     });
 
+    this._models = null;
+    this._saveConfig();
+  }
+
+  /**
+   * Update a configured provider's fields. A `null` `apiKey` clears the key
+   * (drops it from the entry); a string sets it verbatim. Throws when the
+   * provider is not configured.
+   */
+  updateProvider(
+    providerId: string,
+    { apiKey }: { apiKey: string | null }
+  ): void {
+    const entry = this._config.providers.find(
+      (provider) => provider.id === providerId
+    );
+    if (!entry) {
+      throw new Error(`Provider not configured: ${providerId}`);
+    }
+    if (apiKey === null) {
+      delete entry.apiKey;
+    } else {
+      entry.apiKey = apiKey;
+    }
     this._models = null;
     this._saveConfig();
   }
@@ -93,10 +115,16 @@ export class ModelManager {
    * `process.env.DEEPSEEK_API_KEY`); any other value is returned verbatim.
    * Returns `undefined` when the provider has no key configured.
    */
-  async getApiKey(providerId: string): Promise<string | undefined> {
+  async getApiKey(
+    providerId: string,
+    resolved = true
+  ): Promise<string | undefined> {
     const apiKey = this._config.providers.find(
       (entry) => entry.id === providerId
     )?.apiKey;
+    if (!resolved) {
+      return apiKey;
+    }
     if (!apiKey) {
       if (providerId === "openai-codex") {
         const codexApiKey = this._getCodexApiKey();
@@ -110,6 +138,11 @@ export class ModelManager {
       return await Promise.resolve(process.env[apiKey.slice(1)]);
     }
     return apiKey;
+  }
+
+  /** The public homepage for a builtin provider, if known. */
+  getWebsiteLink(providerId: string): string | undefined {
+    return BUILTIN_PROVIDER_META[providerId]?.websiteLink;
   }
 
   /** Assemble the configured providers into a `Models` registry. */
