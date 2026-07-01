@@ -131,6 +131,9 @@ export interface OpenDocumentCommand extends GenericCommand<
   { path?: string }
 > {}
 
+/** Open the GitHub issues page in the user's default browser to report a bug. */
+export interface ReportBugsCommand extends GenericCommand<"reportBugs"> {}
+
 /** The discriminated union of every command. */
 export type Command =
   | NewFileCommand
@@ -155,7 +158,8 @@ export type Command =
   | ResetZoomCommand
   | ReloadCommand
   | OpenLinkCommand
-  | OpenDocumentCommand;
+  | OpenDocumentCommand
+  | ReportBugsCommand;
 
 /** The `type` string of any command. */
 export type CommandType = Command["type"];
@@ -200,4 +204,5 @@ export const COMMAND_META: Record<
   reload: { label: "Reload", target: "bun" },
   openLink: { label: "Open link", target: "bun" },
   openDocument: { label: "Documents", target: "bun" },
+  reportBugs: { label: "Report bug", target: "bun" },
 };

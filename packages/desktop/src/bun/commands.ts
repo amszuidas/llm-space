@@ -8,6 +8,9 @@ import { mainWindowRPC } from "./rpc";
 /** The documentation website opened by the `openDocument` command. */
 const DOCS_URL = "https://my.feishu.cn/wiki/QnGGwGkoti8nwok2cEOc2oMvnrd";
 
+/** The GitHub issues page opened by the `reportBugs` command. */
+const ISSUES_URL = "https://github.com/llm-space/llm-space/issues";
+
 const ZOOM_STEP = 0.1;
 const ZOOM_MIN = 0.3;
 const ZOOM_MAX = 3.0;
@@ -53,6 +56,10 @@ export function executeCommandInBun(command: Command, window: BrowserWindow) {
     case "openDocument": {
       // `path` is ignored for now — always open the docs home.
       Utils.openExternal(DOCS_URL);
+      return;
+    }
+    case "reportBugs": {
+      Utils.openExternal(ISSUES_URL);
       return;
     }
     default:

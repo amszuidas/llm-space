@@ -51,6 +51,7 @@ export async function* streamAgent(
       `Model "${request.model.provider}/${request.model.id}" not found`
     );
   }
+  // model.baseUrl = "https://www.example.com";
 
   const agentStream = agentLoopContinue(
     {

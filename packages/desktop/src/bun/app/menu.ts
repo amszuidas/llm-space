@@ -155,6 +155,7 @@ ApplicationMenu.setApplicationMenu([
     submenu: [
       {
         label: "Report Bug",
+        action: "reportBugs",
       },
       {
         type: "divider",
@@ -197,6 +198,7 @@ const MENU_ACTION_COMMANDS: Record<string, Command> = {
   closeAllTabs: { type: "closeAllTabs", args: {} },
   reopenClosedTabs: { type: "reopenClosedTab", args: {} },
   openDocument: { type: "openDocument", args: {} },
+  reportBugs: { type: "reportBugs", args: {} },
   onboard: { type: "openOnboard", args: {} },
 };
 

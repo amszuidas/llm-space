@@ -2,7 +2,6 @@
 
 import type { ReactNode } from "react";
 
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -78,14 +77,6 @@ export function GeneralPage() {
             <SelectItem value="en-US">English (US)</SelectItem>
           </SelectContent>
         </Select>
-      </SettingsRow>
-
-      <Separator />
-
-      <SettingsRow label="Reset">
-        <Button variant="destructive" onClick={handleReset}>
-          Clear local storage
-        </Button>
       </SettingsRow>
     </SettingsPage>
   );
