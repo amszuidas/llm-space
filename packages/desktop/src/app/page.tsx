@@ -4,6 +4,8 @@ import { usePanelRef } from "react-resizable-panels";
 import { CommandProvider, useCommands, useRegisterCommands } from "@/commands";
 import { CommandPalette } from "@/components/command-palette";
 import { FileSystemTreeView } from "@/components/file-system-tree-view";
+import { useModels } from "@/components/model-provider";
+import { OnboardDialog } from "@/components/onboard-dialog";
 import { SettingsDialog } from "@/components/settings/settings-dialog";
 import { ThreadTabs, useThreadTabs } from "@/components/thread-tabs";
 import {
@@ -40,6 +42,7 @@ const COMMAND_PALETTE_BLACKLIST = [
 function PageInner() {
   const tabs = useThreadTabs();
   const { executeCommand } = useCommands();
+  const models = useModels();
 
   // The active tab is read through a ref so command handlers never go stale.
   const activePathRef = useRef(tabs.activePath);
@@ -59,6 +62,7 @@ function PageInner() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("general");
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [onboardOpen, setOnboardOpen] = useState(false);
 
   // Register the command handlers backed by page-level state (tabs, sidebar,
   // settings). `newFile` / `newFolder` / the tree ops are registered by the
@@ -84,7 +88,15 @@ function PageInner() {
       setSettingsOpen(true);
     },
     openCommandPalette: () => setCommandPaletteOpen(true),
+    openOnboard: () => setOnboardOpen(true),
   });
+
+  // On a fresh launch with no configured models, prompt onboarding. Runs once on
+  // mount; adding or removing providers afterwards won't re-trigger it.
+  // Deps intentionally empty: this is a one-shot startup check, not reactive.
+  useEffect(() => {
+    if (models.length === 0) setOnboardOpen(true);
+  }, []);
 
   // Bridge commands dispatched from the bun process (native menu / shortcuts)
   // into the renderer dispatcher.
@@ -159,6 +171,7 @@ function PageInner() {
         onOpenChange={setCommandPaletteOpen}
         blacklist={COMMAND_PALETTE_BLACKLIST}
       />
+      <OnboardDialog open={onboardOpen} onOpenChange={setOnboardOpen} />
     </div>
   );
 }

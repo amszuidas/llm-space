@@ -1,5 +1,8 @@
+"use client";
+
 import type { ReactNode } from "react";
 
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -28,6 +31,13 @@ function SettingsRow({
 }
 
 export function GeneralPage() {
+  // Simple reset: wipe persisted UI state (open tabs, active tab, …) and reload
+  // so the app comes back in a first-launch state.
+  const handleReset = () => {
+    window.localStorage.clear();
+    window.location.reload();
+  };
+
   return (
     <SettingsPage title="General">
       <SettingsRow label="Appearance">
@@ -68,6 +78,14 @@ export function GeneralPage() {
             <SelectItem value="en-US">English (US)</SelectItem>
           </SelectContent>
         </Select>
+      </SettingsRow>
+
+      <Separator />
+
+      <SettingsRow label="Reset">
+        <Button variant="destructive" onClick={handleReset}>
+          Clear local storage
+        </Button>
       </SettingsRow>
     </SettingsPage>
   );

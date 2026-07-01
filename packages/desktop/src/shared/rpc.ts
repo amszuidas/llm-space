@@ -51,6 +51,14 @@ export interface DesktopRPCType {
         params: { providerId: string; apiKey: string | null };
         response: ModelProviderGroup[];
       };
+      setModelEnabled: {
+        params: { providerId: string; modelId: string; enabled: boolean };
+        response: ModelProviderGroup[];
+      };
+      setAllModelsEnabled: {
+        params: { providerId: string; enabled: boolean };
+        response: ModelProviderGroup[];
+      };
       toggleMaximized: {
         params: Record<string, never>;
         response: { maximized: boolean };

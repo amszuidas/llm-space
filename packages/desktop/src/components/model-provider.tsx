@@ -1,7 +1,7 @@
 "use client";
 
 import type * as pi from "@earendil-works/pi-ai";
-import type { ModelProviderGroup } from "@llm-space/core";
+import type { ModelConfig, ModelProviderGroup } from "@llm-space/core";
 import {
   createContext,
   useCallback,
@@ -22,6 +22,15 @@ interface ModelContextValue {
     providerId: string,
     fields: { apiKey: string | null }
   ) => Promise<void>;
+  setModelEnabled: (
+    providerId: string,
+    modelId: string,
+    enabled: boolean
+  ) => Promise<void>;
+  setAllModelsEnabled: (
+    providerId: string,
+    enabled: boolean
+  ) => Promise<void>;
   refresh: () => Promise<void>;
   getModel: (ref: { id: string; provider: string }) => pi.Model<pi.Api> | null;
 }
@@ -36,6 +45,26 @@ function buildModelIndex(providers: ModelProviderGroup[]) {
     }
   }
   return map;
+}
+
+/**
+ * The first enabled model across the configured providers, or `null` when none
+ * are available. Mirrors the model selector's ordering (providers sorted by
+ * name, each group's `disabledModels` skipped) so the "default" the user sees
+ * matches what runs. Used as the fallback for threads with no saved model.
+ */
+export function firstAvailableModel(
+  providers: ModelProviderGroup[]
+): ModelConfig | null {
+  const sorted = [...providers].sort((a, b) => a.name.localeCompare(b.name));
+  for (const group of sorted) {
+    const disabled = new Set(group.disabledModels ?? []);
+    const model = group.models.find((m) => !disabled.has(m.id));
+    if (model) {
+      return { provider: model.provider, id: model.id };
+    }
+  }
+  return null;
 }
 
 export function ModelProvider({
@@ -79,6 +108,35 @@ export function ModelProvider({
     []
   );
 
+  const setModelEnabled = useCallback(
+    async (providerId: string, modelId: string, enabled: boolean) => {
+      if (!electrobun.rpc) {
+        throw new Error("Electrobun RPC is not initialized");
+      }
+      const updated = await electrobun.rpc.request.setModelEnabled({
+        providerId,
+        modelId,
+        enabled,
+      });
+      setProviders(updated);
+    },
+    []
+  );
+
+  const setAllModelsEnabled = useCallback(
+    async (providerId: string, enabled: boolean) => {
+      if (!electrobun.rpc) {
+        throw new Error("Electrobun RPC is not initialized");
+      }
+      const updated = await electrobun.rpc.request.setAllModelsEnabled({
+        providerId,
+        enabled,
+      });
+      setProviders(updated);
+    },
+    []
+  );
+
   // Re-fetch the providers from the main process. Callers invoke this to force a
   // fresh read (e.g. every time the model dropdown opens) — the result is never
   // cached beyond the current render.
@@ -104,10 +162,20 @@ export function ModelProvider({
       removeProvider,
       addProvider,
       updateProvider,
+      setModelEnabled,
+      setAllModelsEnabled,
       refresh,
       getModel: (ref) => index.get(`${ref.provider}:${ref.id}`) ?? null,
     };
-  }, [providers, removeProvider, addProvider, updateProvider, refresh]);
+  }, [
+    providers,
+    removeProvider,
+    addProvider,
+    updateProvider,
+    setModelEnabled,
+    setAllModelsEnabled,
+    refresh,
+  ]);
 
   if (!contextValue) {
     return fallback;
@@ -130,6 +198,12 @@ function useModelProvider() {
 
 export function useModels(): ModelProviderGroup[] {
   return useModelProvider().providers;
+}
+
+/** The fallback model for a thread with no saved model (`null` if none). */
+export function useFirstAvailableModel(): ModelConfig | null {
+  const providers = useModels();
+  return useMemo(() => firstAvailableModel(providers), [providers]);
 }
 
 export function useRemoveProvider(): (providerId: string) => Promise<void> {
@@ -155,6 +229,21 @@ export function useUpdateProvider(): (
   fields: { apiKey: string | null }
 ) => Promise<void> {
   return useModelProvider().updateProvider;
+}
+
+export function useSetModelEnabled(): (
+  providerId: string,
+  modelId: string,
+  enabled: boolean
+) => Promise<void> {
+  return useModelProvider().setModelEnabled;
+}
+
+export function useSetAllModelsEnabled(): (
+  providerId: string,
+  enabled: boolean
+) => Promise<void> {
+  return useModelProvider().setAllModelsEnabled;
 }
 
 export function useRefreshModels(): () => Promise<void> {

@@ -35,9 +35,11 @@ export const Thread = Type.Object({
   title: Type.Optional(Type.String()),
 
   /**
-   * The model configuration of the thread.
+   * The model configuration of the thread. Optional — a thread may be created
+   * without a model; the UI resolves a fallback (first available model) for
+   * display/running and only persists a model once the user picks one.
    */
-  model: ModelConfig,
+  model: Type.Optional(ModelConfig),
 
   /**
    * The context of the thread, including the system prompt, messages, and tools.

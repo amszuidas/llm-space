@@ -1,12 +1,11 @@
 "use client";
 
-import type { FileNode } from "@llm-space/core";
+import { uuid, type FileNode } from "@llm-space/core";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { localFs } from "@/client";
-import { useModels } from "@/components/model-provider";
 
 /** Query-key factory for a directory listing. */
 export const fsKeys = {
@@ -154,7 +153,6 @@ export interface FileSystemTree {
  */
 export function useFileSystemTree(): FileSystemTree {
   const qc = useQueryClient();
-  const modelGroups = useModels();
   // Restore the directories that were open last session (shallowest-first, so
   // each parent loads before its children); entries whose directory no longer
   // exists are pruned once their parent's listing loads.
@@ -272,13 +270,15 @@ export function useFileSystemTree(): FileSystemTree {
         const { name, index } = uniqueUntitled(names, ".json");
         const title = index === 0 ? "Untitled" : `Untitled ${index}`;
         path = joinPath(parent, name);
-        const model = modelGroups[0]?.models[0];
-        if (!model) {
-          throw new Error("No models configured");
-        }
+        // Model-less by default; the UI resolves a fallback model at run time.
+        // Seed a single empty user message to edit.
         await localFs.write(path, {
           title,
-          model,
+          context: {
+            messages: [
+              { id: uuid(), role: "user", content: [{ type: "text", text: "" }] },
+            ],
+          },
         });
       } catch (err) {
         toast.error((err as Error).message);
@@ -287,7 +287,7 @@ export function useFileSystemTree(): FileSystemTree {
       void qc.invalidateQueries({ queryKey: fsKeys.ls(parent) });
       return path;
     },
-    [modelGroups, qc]
+    [qc]
   );
 
   const remove = useCallback(

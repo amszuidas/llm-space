@@ -8,10 +8,7 @@
  */
 
 /** Base shape for every command: a string `type` and typed `args`. */
-export interface GenericCommand<
-  T extends string,
-  A = Record<string, never>,
-> {
+export interface GenericCommand<T extends string, A = Record<string, never>> {
   type: T;
   args: A;
 }
@@ -24,28 +21,40 @@ export interface GenericCommand<
  * the tree/root "New file" icons); otherwise it is auto-named and opened
  * immediately (used by the ⌘N menu, the tab-bar "+", and the welcome screen).
  */
-export interface NewFileCommand
-  extends GenericCommand<"newFile", { parent?: string; rename?: boolean }> {}
+export interface NewFileCommand extends GenericCommand<
+  "newFile",
+  { parent?: string; rename?: boolean }
+> {}
 
 /** Create a new folder (with in-place rename). `parent` defaults to the root. */
-export interface NewFolderCommand
-  extends GenericCommand<"newFolder", { parent?: string }> {}
+export interface NewFolderCommand extends GenericCommand<
+  "newFolder",
+  { parent?: string }
+> {}
 
 /** Start an in-place rename of the node at `path`. */
-export interface RenameFileCommand
-  extends GenericCommand<"renameFile", { path: string }> {}
+export interface RenameFileCommand extends GenericCommand<
+  "renameFile",
+  { path: string }
+> {}
 
 /** Duplicate the node at `path`. */
-export interface DuplicateFileCommand
-  extends GenericCommand<"duplicateFile", { path: string }> {}
+export interface DuplicateFileCommand extends GenericCommand<
+  "duplicateFile",
+  { path: string }
+> {}
 
 /** Move the node at `path` to the OS trash (via a confirm dialog). */
-export interface DeleteFileCommand
-  extends GenericCommand<"deleteFile", { path: string }> {}
+export interface DeleteFileCommand extends GenericCommand<
+  "deleteFile",
+  { path: string }
+> {}
 
 /** Reveal the node at `path` in the OS file manager (`""` = the root). */
-export interface RevealFileCommand
-  extends GenericCommand<"revealFile", { path: string }> {}
+export interface RevealFileCommand extends GenericCommand<
+  "revealFile",
+  { path: string }
+> {}
 
 /** Refresh (re-list) the file tree. */
 export interface RefreshTreeCommand extends GenericCommand<"refreshTree"> {}
@@ -53,41 +62,45 @@ export interface RefreshTreeCommand extends GenericCommand<"refreshTree"> {}
 // --- Tabs ------------------------------------------------------------------
 
 /** Close a tab. `path` defaults to the active tab. */
-export interface CloseTabCommand
-  extends GenericCommand<"closeTab", { path?: string }> {}
+export interface CloseTabCommand extends GenericCommand<
+  "closeTab",
+  { path?: string }
+> {}
 
 /** Close every tab except `path` (defaults to the active tab). */
-export interface CloseOtherTabsCommand
-  extends GenericCommand<"closeOtherTabs", { path?: string }> {}
+export interface CloseOtherTabsCommand extends GenericCommand<
+  "closeOtherTabs",
+  { path?: string }
+> {}
 
 /** Close every open tab. */
-export interface CloseAllTabsCommand
-  extends GenericCommand<"closeAllTabs"> {}
+export interface CloseAllTabsCommand extends GenericCommand<"closeAllTabs"> {}
 
 /** Reopen the most recently closed tab group. */
-export interface ReopenClosedTabCommand
-  extends GenericCommand<"reopenClosedTab"> {}
+export interface ReopenClosedTabCommand extends GenericCommand<"reopenClosedTab"> {}
 
 // --- View / app ------------------------------------------------------------
 
 /** Collapse or expand the left side panel. */
-export interface ToggleSidebarCommand
-  extends GenericCommand<"toggleSidebar"> {}
+export interface ToggleSidebarCommand extends GenericCommand<"toggleSidebar"> {}
 
 /** Which Settings tab to show. */
 export type SettingsTab = "general" | "models";
 
 /** Open the Settings dialog, optionally on a specific `tab`. */
-export interface OpenSettingsCommand
-  extends GenericCommand<"openSettings", { tab?: SettingsTab }> {}
+export interface OpenSettingsCommand extends GenericCommand<
+  "openSettings",
+  { tab?: SettingsTab }
+> {}
 
 /** Open the Settings dialog directly on the Models tab. */
-export interface OpenModelSettingsCommand
-  extends GenericCommand<"openModelSettings"> {}
+export interface OpenModelSettingsCommand extends GenericCommand<"openModelSettings"> {}
 
 /** Open the command palette. */
-export interface OpenCommandPaletteCommand
-  extends GenericCommand<"openCommandPalette"> {}
+export interface OpenCommandPaletteCommand extends GenericCommand<"openCommandPalette"> {}
+
+/** Open the first-run onboarding dialog. */
+export interface OpenOnboardCommand extends GenericCommand<"openOnboard"> {}
 
 /** Run the active thread. No-op when there is no active thread tab. */
 export interface RunThreadCommand extends GenericCommand<"runThread"> {}
@@ -104,15 +117,19 @@ export interface ResetZoomCommand extends GenericCommand<"resetZoom"> {}
 export interface ReloadCommand extends GenericCommand<"reload"> {}
 
 /** Open a URL in the user's default browser (via the OS). */
-export interface OpenLinkCommand
-  extends GenericCommand<"openLink", { url: string }> {}
+export interface OpenLinkCommand extends GenericCommand<
+  "openLink",
+  { url: string }
+> {}
 
 /**
  * Open the documentation website in the user's default browser. `path` may point
  * at a specific doc page (currently ignored — always opens the docs home).
  */
-export interface OpenDocumentCommand
-  extends GenericCommand<"openDocument", { path?: string }> {}
+export interface OpenDocumentCommand extends GenericCommand<
+  "openDocument",
+  { path?: string }
+> {}
 
 /** The discriminated union of every command. */
 export type Command =
@@ -131,6 +148,7 @@ export type Command =
   | OpenSettingsCommand
   | OpenModelSettingsCommand
   | OpenCommandPaletteCommand
+  | OpenOnboardCommand
   | RunThreadCommand
   | ZoomInCommand
   | ZoomOutCommand
@@ -174,6 +192,7 @@ export const COMMAND_META: Record<
   openSettings: { label: "Settings", target: "webview" },
   openModelSettings: { label: "Configure model settings", target: "webview" },
   openCommandPalette: { label: "Command palette", target: "webview" },
+  openOnboard: { label: "Onboard...", target: "webview" },
   runThread: { label: "Run thread", target: "webview" },
   zoomIn: { label: "Zoom in", target: "bun" },
   zoomOut: { label: "Zoom out", target: "bun" },

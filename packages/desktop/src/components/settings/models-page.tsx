@@ -2,6 +2,9 @@
 
 import type { ModelProviderGroup } from "@llm-space/core";
 import {
+  Ban,
+  Check,
+  CheckCheck,
   ExternalLink,
   Eye,
   EyeOff,
@@ -22,7 +25,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { Item, ItemContent, ItemMedia, ItemTitle } from "@/components/ui/item";
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemMedia,
+  ItemTitle,
+} from "@/components/ui/item";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 
@@ -33,6 +42,8 @@ import {
   useFetchBuiltinProviders,
   useModels,
   useRemoveProvider,
+  useSetAllModelsEnabled,
+  useSetModelEnabled,
   useUpdateProvider,
 } from "../model-provider";
 import { ModelAvatar } from "../thread-playground/model-avatar";
@@ -345,17 +356,17 @@ function ProviderListItem({
 
 function ProviderEditor({ provider }: { provider: ModelProviderGroup | null }) {
   const updateProvider = useUpdateProvider();
-  const [apiKeyEnabled, setApiKeyEnabled] = useState(Boolean(provider?.apiKey));
+  const setModelEnabled = useSetModelEnabled();
+  const setAllModelsEnabled = useSetAllModelsEnabled();
   const [apiKeyVisible, setApiKeyVisible] = useState(false);
+  const [modelView, setModelView] = useState<"all" | "enabled" | "disabled">(
+    "all"
+  );
 
-  // Toggling the switch off clears the stored key immediately; toggling on just
-  // reveals the input and waits for the user to type a value.
-  const handleApiKeyToggle = (enabled: boolean) => {
-    setApiKeyEnabled(enabled);
-    if (!enabled && provider) {
-      void updateProvider(provider.id, { apiKey: null });
-    }
-  };
+  const disabledModels = useMemo(
+    () => new Set(provider?.disabledModels ?? []),
+    [provider]
+  );
 
   // Persist on blur, but only when the value actually changed. An empty field
   // clears the key (stored as `null`).
@@ -376,6 +387,17 @@ function ProviderEditor({ provider }: { provider: ModelProviderGroup | null }) {
       </div>
     );
   }
+
+  const totalModels = provider.models.length;
+  const enabledModels = provider.models.filter(
+    (model) => !disabledModels.has(model.id)
+  ).length;
+
+  const visibleModels = provider.models.filter((model) => {
+    if (modelView === "enabled") return !disabledModels.has(model.id);
+    if (modelView === "disabled") return disabledModels.has(model.id);
+    return true;
+  });
 
   return (
     <div className="flex min-w-0 grow flex-col">
@@ -399,47 +421,39 @@ function ProviderEditor({ provider }: { provider: ModelProviderGroup | null }) {
 
           {provider.id !== "openai-codex" && (
             <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium">
-                  Use custom API key
-                </label>
-                <Switch
-                  checked={apiKeyEnabled}
-                  onCheckedChange={handleApiKeyToggle}
+              <label className="text-sm font-medium">API Key</label>
+              <div className="relative">
+                <Input
+                  type={apiKeyVisible ? "text" : "password"}
+                  defaultValue={provider.apiKey ?? ""}
+                  placeholder={`Input API Key for ${provider.name}.`}
+                  className="pr-9"
+                  onBlur={handleApiKeyBlur}
                 />
+                <button
+                  type="button"
+                  onClick={() => setApiKeyVisible((visible) => !visible)}
+                  className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2 -translate-y-1/2 transition-colors"
+                  aria-label={apiKeyVisible ? "Hide API key" : "Show API key"}
+                >
+                  {apiKeyVisible ? (
+                    <EyeOff className="size-4" />
+                  ) : (
+                    <Eye className="size-4" />
+                  )}
+                </button>
               </div>
-              {apiKeyEnabled && (
-                <div className="flex flex-col gap-2">
-                  <div className="relative">
-                    <Input
-                      type={apiKeyVisible ? "text" : "password"}
-                      defaultValue={provider.apiKey ?? ""}
-                      placeholder={`Input API Key for ${provider.name}.`}
-                      className="pr-9"
-                      onBlur={handleApiKeyBlur}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setApiKeyVisible((visible) => !visible)}
-                      className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2 -translate-y-1/2 transition-colors"
-                      aria-label={
-                        apiKeyVisible ? "Hide API key" : "Show API key"
-                      }
-                    >
-                      {apiKeyVisible ? (
-                        <EyeOff className="size-4" />
-                      ) : (
-                        <Eye className="size-4" />
-                      )}
-                    </button>
-                  </div>
-                  <div className="text-muted-foreground text-xs">
-                    {
-                      'Use "${ENV_NAME}" to reference environment variables. e.g. "$OPENAI_API_KEY"'
-                    }
-                  </div>
+              <div className="text-muted-foreground pl-5 text-xs">
+                <div className="list-item">
+                  {
+                    'Use "${ENV_NAME}" to reference environment variables. e.g. "$OPENAI_API_KEY"'
+                  }
                 </div>
-              )}
+                <div className="list-item">
+                  Leave it blank to use the official {provider.name} environment
+                  variable
+                </div>
+              </div>
             </div>
           )}
 
@@ -447,20 +461,93 @@ function ProviderEditor({ provider }: { provider: ModelProviderGroup | null }) {
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium">Models</span>
               <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs">
-                {provider.models.length}
+                {enabledModels === totalModels
+                  ? totalModels
+                  : `${enabledModels}/${totalModels}`}
               </span>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label="Model list actions"
+                    className="text-muted-foreground hover:bg-accent hover:text-foreground ml-auto inline-flex size-6 items-center justify-center rounded transition-colors"
+                  >
+                    <MoreHorizontal className="size-4" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44">
+                  <DropdownMenuItem
+                    onSelect={() =>
+                      void setAllModelsEnabled(provider.id, false)
+                    }
+                  >
+                    <Ban />
+                    Disable All
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => void setAllModelsEnabled(provider.id, true)}
+                  >
+                    <CheckCheck />
+                    Enable All
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  {(
+                    [
+                      ["enabled", "Show Enabled Only"],
+                      ["disabled", "Show Disabled Only"],
+                      ["all", "Show All"],
+                    ] as const
+                  ).map(([value, label]) => (
+                    <DropdownMenuItem
+                      key={value}
+                      onSelect={() => setModelView(value)}
+                    >
+                      <Check
+                        className={cn(
+                          "size-3.5",
+                          modelView !== value && "invisible"
+                        )}
+                      />
+                      {label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
             <div className="flex flex-col gap-1.5">
-              {provider.models.map((model) => (
-                <Item key={model.id} variant="muted" size="sm">
-                  <ItemMedia>
-                    <ModelAvatar id={model.id} name={model.name} />
-                  </ItemMedia>
-                  <ItemContent>
-                    <ItemTitle className="font-mono">{model.name}</ItemTitle>
-                  </ItemContent>
-                </Item>
-              ))}
+              {visibleModels.length === 0 ? (
+                <div className="text-muted-foreground px-1 py-2 text-xs">
+                  No models to show.
+                </div>
+              ) : (
+                visibleModels.map((model) => {
+                const enabled = !disabledModels.has(model.id);
+                return (
+                  <Item key={model.id} variant="muted" size="sm">
+                    <ItemMedia>
+                      <ModelAvatar id={model.id} name={model.name} />
+                    </ItemMedia>
+                    <ItemContent className={cn(!enabled && "opacity-50")}>
+                      <ItemTitle className="font-mono">{model.name}</ItemTitle>
+                    </ItemContent>
+                    <ItemActions>
+                      <Switch
+                        size="sm"
+                        checked={enabled}
+                        onCheckedChange={(next) =>
+                          void setModelEnabled(provider.id, model.id, next)
+                        }
+                        aria-label={
+                          enabled
+                            ? `Disable ${model.name}`
+                            : `Enable ${model.name}`
+                        }
+                      />
+                    </ItemActions>
+                  </Item>
+                );
+                })
+              )}
             </div>
           </div>
         </div>

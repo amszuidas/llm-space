@@ -47,13 +47,13 @@ export function ModelCard({
   model,
   className,
 }: {
-  model: ModelConfig;
+  model: ModelConfig | null;
   className?: string;
 }) {
   const providers = useModels();
   const resolvedModel = useModel({
-    id: model.id,
-    provider: model.provider,
+    id: model?.id ?? "",
+    provider: model?.provider ?? "",
   });
   if (!resolvedModel) {
     return null;

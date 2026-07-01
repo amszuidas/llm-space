@@ -6,6 +6,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePanelRef } from "react-resizable-panels";
 
 import { useRegisterCommands } from "@/commands";
+import {
+  firstAvailableModel,
+  useFirstAvailableModel,
+  useModels,
+} from "@/components/model-provider";
 import { cn } from "@/lib/utils";
 
 import { Tooltip } from "../tooltip";
@@ -116,8 +121,16 @@ function _ThreadPlayground({
   onStreamingEnd,
   ...props
 }: ThreadPlaygroundProps) {
+  // Keep a live ref to the provider list so the store can resolve a fallback
+  // model (first available) at run/edit time without being recreated.
+  const providers = useModels();
+  const providersRef = useRef(providers);
+  providersRef.current = providers;
   const [store] = useState(() =>
-    createThreadStore(initialValue, { transport })
+    createThreadStore(initialValue, {
+      transport,
+      getFallbackModel: () => firstAvailableModel(providersRef.current),
+    })
   );
   useThreadPlaygroundEvents(store, {
     onChange,
@@ -144,6 +157,10 @@ function ThreadPlaygroundContent({
 >) {
   const containerRef = useRef<HTMLDivElement>(null);
   const status = useThreadStore((s) => s.status);
+  const savedModel = useThreadStore((s) => s.thread.model);
+  const fallbackModel = useFirstAvailableModel();
+  // A thread can run once a model resolves (its own, or the first available).
+  const hasModel = Boolean(savedModel ?? fallbackModel);
   const undoable = useThreadStore((s) => canUndo(s.changeHistory));
   const redoable = useThreadStore((s) => canRedo(s.changeHistory));
   const { run, abort, undo, redo } = useThreadStoreActions();
@@ -251,7 +268,9 @@ function ThreadPlaygroundContent({
                     "w-20 px-3 py-3.5",
                     readonlyFromProps && "hidden"
                   )}
-                  disabled={readonlyFromProps}
+                  disabled={
+                    readonlyFromProps || (status !== "running" && !hasModel)
+                  }
                   onClick={status === "running" ? handleStop : handleRun}
                 >
                   {status === "running" ? (

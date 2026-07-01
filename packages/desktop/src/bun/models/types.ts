@@ -4,6 +4,11 @@ export interface ProviderConfig {
   /** Whether this is a builtin provider shipped with the app. */
   builtin?: boolean;
   apiKey?: string;
+  /**
+   * Model ids the user has disabled for this provider. Absent/empty means every
+   * model is enabled (the default).
+   */
+  disabledModels?: string[];
 }
 
 /** Shape of `settings/models.json`. */

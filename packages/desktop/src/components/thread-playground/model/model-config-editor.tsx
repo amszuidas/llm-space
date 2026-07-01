@@ -1,6 +1,6 @@
 "use client";
 
-import { useModel } from "@/components/model-provider";
+import { useFirstAvailableModel, useModel } from "@/components/model-provider";
 import { cn } from "@/lib/utils";
 
 import { useThreadStore } from "../stores";
@@ -15,23 +15,27 @@ export function ModelConfigEditor({
   className?: string;
   readonly?: boolean;
 }) {
-  const model = useThreadStore((s) => s.thread.model);
+  // A thread may have no saved model; fall back to the first available one for
+  // display. `null` when there are no models at all.
+  const savedModel = useThreadStore((s) => s.thread.model);
+  const fallbackModel = useFirstAvailableModel();
+  const model = savedModel ?? fallbackModel;
   const resolvedModel = useModel({
-    id: model.id,
-    provider: model.provider,
+    id: model?.id ?? "",
+    provider: model?.provider ?? "",
   });
 
   const paramSummary: { label: string; value: string | number }[] = [];
-  if (model.params?.temperature !== undefined) {
+  if (model?.params?.temperature !== undefined) {
     paramSummary.push({
       label: "temperature",
       value: model.params.temperature,
     });
   }
-  if (model.params?.maxTokens !== undefined) {
+  if (model?.params?.maxTokens !== undefined) {
     paramSummary.push({ label: "max_tokens", value: model.params.maxTokens });
   }
-  if (resolvedModel?.reasoning && model.params?.reasoning !== undefined) {
+  if (resolvedModel?.reasoning && model?.params?.reasoning !== undefined) {
     paramSummary.push({ label: "reasoning", value: model.params.reasoning });
   }
 
@@ -39,7 +43,7 @@ export function ModelConfigEditor({
     <div className={cn("group flex w-full", className)}>
       <div className="flex min-w-0 grow flex-col gap-2">
         <div className="flex cursor-default items-center text-sm">
-          <ModelSelector value={model} readonly={readonly} />
+          <ModelSelector value={model ?? null} readonly={readonly} />
         </div>
         {paramSummary.length > 0 ? (
           <div className="text-muted-foreground pl-2 text-xs">

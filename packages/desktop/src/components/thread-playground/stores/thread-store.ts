@@ -77,7 +77,15 @@ export type ThreadStore = StoreApi<ThreadState>;
 
 export function createThreadStore(
   initialThread: Thread,
-  options: { transport?: AgentTransport } = {}
+  options: {
+    transport?: AgentTransport;
+    /**
+     * Resolve the model to use when the thread has no saved model — the first
+     * available model, or `null` when none are configured. Supplied by the UI,
+     * which holds the live provider list.
+     */
+    getFallbackModel?: () => ModelConfig | null;
+  } = {}
 ): ThreadStore {
   return createStore<ThreadState>()(
     subscribeWithSelector((set, get) => {
@@ -230,9 +238,14 @@ export function createThreadStore(
           patchThread({ title });
         },
         updateModelParams(params: Partial<ModelConfigParams>) {
-          const { model } = get().thread;
+          // Materialize the model on explicit param edits: fall back to the
+          // first available model when the thread has none yet.
+          const base = get().thread.model ?? options.getFallbackModel?.();
+          if (!base) {
+            return;
+          }
           patchThread({
-            model: { ...model, params: { ...model.params, ...params } },
+            model: { ...base, params: { ...base.params, ...params } },
           });
         },
         updateModel(model: Pick<ModelConfig, "id" | "provider">) {
@@ -370,6 +383,13 @@ export function createThreadStore(
           if (get().status === "running") {
             throw new Error("Thread is already running");
           }
+          // Resolve the model to run with: the thread's own, else the first
+          // available. A thread with no resolvable model cannot run.
+          const model = get().thread.model ?? options.getFallbackModel?.() ?? null;
+          if (!model) {
+            toast.error("Select a model to run");
+            return;
+          }
           const abortController = new AbortController();
           set({ status: "running", abortController });
 
@@ -421,8 +441,8 @@ export function createThreadStore(
           try {
             const response = streamThread(
               {
-                ...get().thread,
                 context: { ...get().thread.context, messages },
+                model,
               },
               { signal: abortController.signal, transport: options.transport }
             );

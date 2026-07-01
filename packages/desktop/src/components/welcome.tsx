@@ -1,6 +1,11 @@
 "use client";
 
-import { ArrowUpRightIcon, SparklesIcon } from "lucide-react";
+import {
+  ArrowUpRightIcon,
+  PlusIcon,
+  SettingsIcon,
+  SparklesIcon,
+} from "lucide-react";
 import { useCallback, type MouseEvent } from "react";
 
 import { useCommands } from "@/commands";
@@ -61,11 +66,13 @@ export function Welcome({ className, onNewFile, onModels }: WelcomeProps) {
           </EmptyDescription>
         </EmptyHeader>
         <EmptyContent className="flex-row justify-center gap-2">
-          <Button className="w-24" onClick={onNewFile}>
+          <Button onClick={onNewFile}>
+            <PlusIcon />
             New thread
           </Button>
-          <Button className="w-24" variant="secondary" onClick={onModels}>
-            Models
+          <Button variant="outline" onClick={onModels}>
+            <SettingsIcon />
+            Configure models
           </Button>
         </EmptyContent>
         <Button

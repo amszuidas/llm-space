@@ -164,6 +164,13 @@ ApplicationMenu.setApplicationMenu([
         action: "openDocument",
         role: "showHelp",
       },
+      {
+        type: "divider",
+      },
+      {
+        label: "Onboard...",
+        action: "onboard",
+      },
     ],
   },
 ]);
@@ -190,6 +197,7 @@ const MENU_ACTION_COMMANDS: Record<string, Command> = {
   closeAllTabs: { type: "closeAllTabs", args: {} },
   reopenClosedTabs: { type: "reopenClosedTab", args: {} },
   openDocument: { type: "openDocument", args: {} },
+  onboard: { type: "openOnboard", args: {} },
 };
 
 /**

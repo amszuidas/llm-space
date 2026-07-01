@@ -11,6 +11,7 @@ import {
 } from "react";
 
 import { useCommands } from "@/commands";
+import { useFirstAvailableModel } from "@/components/model-provider";
 import { cn } from "@/lib/utils";
 
 import { Tooltip } from "../../tooltip";
@@ -95,7 +96,11 @@ export function ModelParamsPopover({
   readonly?: boolean;
   maxTokens?: number;
 }) {
-  const model = useThreadStore((s) => s.thread.model);
+  // Fall back to the first available model when the thread has none saved yet;
+  // `null` when there are no models to configure at all.
+  const savedModel = useThreadStore((s) => s.thread.model);
+  const fallbackModel = useFirstAvailableModel();
+  const model = savedModel ?? fallbackModel;
   const { updateModelParams } = useThreadStoreActions();
   const [popoverOpen, setPopoverOpen] = useState(false);
   const handleOpenChange = useCallback(
@@ -105,7 +110,7 @@ export function ModelParamsPopover({
     [setPopoverOpen]
   );
 
-  const params = model.params ?? {};
+  const params = model?.params ?? {};
   const hasTemperature = params.temperature !== undefined;
   const hasReasoning = params.reasoning !== undefined;
   const hasMaxTokens = params.maxTokens !== undefined;
@@ -152,7 +157,7 @@ export function ModelParamsPopover({
     >
       <HoverCard>
         <HoverCardTrigger asChild>
-          <Button variant="ghost" size="icon-xs">
+          <Button variant="ghost" size="icon-xs" disabled={!model}>
             <InfoIcon className="size-4" />
           </Button>
         </HoverCardTrigger>
@@ -163,7 +168,11 @@ export function ModelParamsPopover({
       <Popover onOpenChange={handleOpenChange}>
         <Tooltip content="Configure model settings">
           <PopoverTrigger asChild>
-            <Button variant="ghost" disabled={readonly} size="icon-xs">
+            <Button
+              variant="ghost"
+              disabled={readonly || !model}
+              size="icon-xs"
+            >
               <SlidersHorizontal className="size-4" />
             </Button>
           </PopoverTrigger>

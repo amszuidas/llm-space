@@ -96,6 +96,68 @@ export class ModelManager {
     this._saveConfig();
   }
 
+  /** The model ids the user has disabled for a provider (empty by default). */
+  getDisabledModels(providerId: string): string[] {
+    return (
+      this._config.providers.find((entry) => entry.id === providerId)
+        ?.disabledModels ?? []
+    );
+  }
+
+  /**
+   * Enable or disable a single model within a provider. Disabling records the
+   * model id in the provider's `disabledModels`; enabling removes it. Model
+   * enablement is a renderer-facing filter only — it does not affect the
+   * `Models` registry — so the cached build is left intact. Throws when the
+   * provider is not configured.
+   */
+  setModelEnabled(providerId: string, modelId: string, enabled: boolean): void {
+    const entry = this._config.providers.find(
+      (provider) => provider.id === providerId
+    );
+    if (!entry) {
+      throw new Error(`Provider not configured: ${providerId}`);
+    }
+    const disabled = new Set(entry.disabledModels ?? []);
+    if (enabled) {
+      disabled.delete(modelId);
+    } else {
+      disabled.add(modelId);
+    }
+    if (disabled.size > 0) {
+      entry.disabledModels = [...disabled];
+    } else {
+      delete entry.disabledModels;
+    }
+    this._saveConfig();
+  }
+
+  /**
+   * Enable or disable every model of a provider at once. Enabling clears the
+   * disabled list; disabling records the provider's full model-id list. We store
+   * the explicit ids (rather than a `"*"` sentinel) so the existing blacklist
+   * semantics stay intact — "disable all, then enable a few" is just removing
+   * ids from the list — and so a later per-model toggle needs no special-casing.
+   * A builtin provider's model set is static, so the stored list can't drift.
+   */
+  setAllModelsEnabled(providerId: string, enabled: boolean): void {
+    const entry = this._config.providers.find(
+      (provider) => provider.id === providerId
+    );
+    if (!entry) {
+      throw new Error(`Provider not configured: ${providerId}`);
+    }
+    if (enabled) {
+      delete entry.disabledModels;
+    } else {
+      const ids = this._providerModelIds(providerId);
+      if (ids.length > 0) {
+        entry.disabledModels = ids;
+      }
+    }
+    this._saveConfig();
+  }
+
   /** Remove a provider from `settings/models.json`. No-op when not configured. */
   removeProvider(providerId: string): void {
     const index = this._config.providers.findIndex(
@@ -143,6 +205,12 @@ export class ModelManager {
   /** The public homepage for a builtin provider, if known. */
   getWebsiteLink(providerId: string): string | undefined {
     return BUILTIN_PROVIDER_META[providerId]?.websiteLink;
+  }
+
+  /** Every model id a builtin provider exposes (empty for unknown providers). */
+  private _providerModelIds(providerId: string): string[] {
+    const provider = BUILTIN_PROVIDERS[providerId];
+    return provider ? provider.getModels().map((model) => model.id) : [];
   }
 
   /** Assemble the configured providers into a `Models` registry. */

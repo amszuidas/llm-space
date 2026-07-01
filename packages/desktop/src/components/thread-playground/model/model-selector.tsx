@@ -42,7 +42,7 @@ export function ModelSelector({
   readonly,
   onOpenChange,
 }: {
-  value: ModelConfig;
+  value: ModelConfig | null;
   readonly?: boolean;
 
   onOpenChange?: (open: boolean) => void;
@@ -57,10 +57,15 @@ export function ModelSelector({
     () =>
       [...providers]
         .sort((a, b) => a.name.localeCompare(b.name))
-        .map((group) => ({
-          name: group.name,
-          items: group.models.map((model) => toModelKey(model)),
-        }))
+        .map((group) => {
+          const disabled = new Set(group.disabledModels ?? []);
+          return {
+            name: group.name,
+            items: group.models
+              .filter((model) => !disabled.has(model.id))
+              .map((model) => toModelKey(model)),
+          };
+        })
         .filter((group) => group.items.length > 0),
     [providers]
   );
@@ -103,7 +108,7 @@ export function ModelSelector({
     [modelLabels]
   );
 
-  const selectedValue = toModelKey(value);
+  const selectedValue = value ? toModelKey(value) : "";
 
   return (
     <Combobox
@@ -132,7 +137,7 @@ export function ModelSelector({
           !readonly && "cursor:pointer hover:bg-secondary"
         )}
         triggerClassName="opacity-0! group-hover/model-select:opacity-100"
-        placeholder="Select a model"
+        placeholder="(No model selected)"
         disabled={readonly}
       />
       <ComboboxContent className="w-96">

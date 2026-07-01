@@ -15,6 +15,7 @@ async function getModelProviderGroups() {
       name: provider.name,
       models: provider.getModels(),
       apiKey: await modelManager.getApiKey(provider.id, false),
+      disabledModels: modelManager.getDisabledModels(provider.id),
       websiteLink: modelManager.getWebsiteLink(provider.id),
     }))
   ) as Promise<ModelProviderGroup[]>;
@@ -44,6 +45,14 @@ export const mainWindowRPC: MainWindowRPC =
         },
         updateProvider: async ({ providerId, apiKey }) => {
           modelManager.updateProvider(providerId, { apiKey });
+          return getModelProviderGroups();
+        },
+        setModelEnabled: async ({ providerId, modelId, enabled }) => {
+          modelManager.setModelEnabled(providerId, modelId, enabled);
+          return getModelProviderGroups();
+        },
+        setAllModelsEnabled: async ({ providerId, enabled }) => {
+          modelManager.setAllModelsEnabled(providerId, enabled);
           return getModelProviderGroups();
         },
         toggleMaximized: async () => {

@@ -6,6 +6,8 @@ export interface ModelProviderGroup {
   models: readonly pi.Model<pi.Api>[];
   apiKeyDetected?: boolean;
   apiKey?: string;
+  /** Model ids the user has disabled. Everything not listed is enabled. */
+  disabledModels?: string[];
   websiteLink?: string;
   websiteURL?: string;
   apiKeyURL?: string;
