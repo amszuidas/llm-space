@@ -4,7 +4,7 @@ import { memo, useCallback } from "react";
 import { CodeEditor } from "../../code-editor";
 import { useThreadStoreActions } from "../stores";
 
-export function ToolCallListItem({
+function _ToolCallListItem({
   messageId,
   toolCall,
 }: {
@@ -53,6 +53,7 @@ export function ToolCallListItem({
     </div>
   );
 }
+export const ToolCallListItem = memo(_ToolCallListItem);
 
 function _ToolCallInputView({ input }: { input: ToolCallInput }) {
   const keys = Object.keys(input.arguments);
