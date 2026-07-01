@@ -34,7 +34,8 @@ Your files and API keys stay on your local computer.
 
 - **Language & tooling** — TypeScript, built and managed with [Bun](https://bun.com).
 - **Desktop shell** — [Electrobun](https://electrobun.dev), a lightweight way to ship a native app.
-- **UI** — React with Tailwind CSS.
+- **UI** — React with Tailwind CSS and shadcn/ui.
+- **Agent framework** — [Pi Agent Core](https://github.com/earendil-works/pi), a lightweight agent framework for building agents.
 
 ## Project layout
 
