@@ -19,9 +19,10 @@ import {
 interface WelcomeProps {
   className?: string;
   onNewFile?: () => void;
+  onSettings?: () => void;
 }
 
-export function Welcome({ className, onNewFile }: WelcomeProps) {
+export function Welcome({ className, onNewFile, onSettings }: WelcomeProps) {
   const handleHeaderDoubleClick = useCallback(() => {
     void electrobun.rpc?.request.toggleMaximized({});
   }, []);
@@ -49,7 +50,12 @@ export function Welcome({ className, onNewFile }: WelcomeProps) {
           </EmptyDescription>
         </EmptyHeader>
         <EmptyContent className="flex-row justify-center gap-2">
-          <Button onClick={onNewFile}>New thread</Button>
+          <Button className="w-24" onClick={onNewFile}>
+            New thread
+          </Button>
+          <Button className="w-24" variant="secondary" onClick={onSettings}>
+            Settings
+          </Button>
         </EmptyContent>
         <Button
           variant="link"

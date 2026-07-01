@@ -1,8 +1,7 @@
 import { ApplicationMenu, type BrowserWindow } from "electrobun/bun";
 
-import { mainWindowRPC } from "../rpc";
-
-import { saveZoom } from "./window-state";
+import type { Command } from "../../shared/commands";
+import { executeCommandInBun } from "../commands";
 
 ApplicationMenu.setApplicationMenu([
   {
@@ -150,71 +149,34 @@ ApplicationMenu.setApplicationMenu([
   },
 ]);
 
-const ZOOM_STEP = 0.1;
-const ZOOM_MIN = 0.3;
-const ZOOM_MAX = 3.0;
-const clampZoom = (zoom: number) =>
-  Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, zoom));
+/**
+ * The native menu items carry a string `action`; map each to the {@link Command}
+ * it dispatches. Everything then flows through the single `executeCommandInBun`
+ * entry point (window-side commands run locally, webview-side ones are
+ * forwarded over RPC).
+ */
+const MENU_ACTION_COMMANDS: Record<string, Command> = {
+  reload: { type: "reload", args: {} },
+  zoomIn: { type: "zoomIn", args: {} },
+  zoomOut: { type: "zoomOut", args: {} },
+  resetZoom: { type: "resetZoom", args: {} },
+  toggleSidebar: { type: "toggleSidebar", args: {} },
+  settings: { type: "openSettings", args: {} },
+  newThread: { type: "newFile", args: {} },
+  closeTab: { type: "closeTab", args: {} },
+  closeOtherTabs: { type: "closeOtherTabs", args: {} },
+  closeAllTabs: { type: "closeAllTabs", args: {} },
+  reopenClosedTabs: { type: "reopenClosedTab", args: {} },
+};
 
 /**
- * Wire View-menu actions to the main window. Called after the window exists
- * (the menu itself is set at import time above).
+ * Wire the application-menu actions to the main window. Called after the window
+ * exists (the menu itself is set at import time above).
  */
 export function registerMenuActions(window: BrowserWindow) {
   ApplicationMenu.on("application-menu-clicked", (event) => {
     const { action } = (event as { data: { action: string } }).data;
-    switch (action) {
-      case "reload": {
-        window.webview?.executeJavascript("location.reload()");
-        return;
-      }
-      case "zoomIn": {
-        const zoom = clampZoom(window.getPageZoom() + ZOOM_STEP);
-        window.setPageZoom(zoom);
-        saveZoom(zoom);
-        return;
-      }
-      case "zoomOut": {
-        const zoom = clampZoom(window.getPageZoom() - ZOOM_STEP);
-        window.setPageZoom(zoom);
-        saveZoom(zoom);
-        return;
-      }
-      case "resetZoom": {
-        window.setPageZoom(1);
-        saveZoom(1);
-        return;
-      }
-      case "toggleSidebar": {
-        mainWindowRPC.send.toggleSidebar({});
-        return;
-      }
-      case "settings": {
-        mainWindowRPC.send.openSettings({});
-        return;
-      }
-      case "newThread": {
-        mainWindowRPC.send.newThread({});
-        return;
-      }
-      case "closeTab": {
-        mainWindowRPC.send.closeActiveTab({});
-        return;
-      }
-      case "closeOtherTabs": {
-        mainWindowRPC.send.closeOtherTabs({});
-        return;
-      }
-      case "closeAllTabs": {
-        mainWindowRPC.send.closeAllTabs({});
-        return;
-      }
-      case "reopenClosedTabs": {
-        mainWindowRPC.send.reopenClosedTabs({});
-        return;
-      }
-      default:
-        return;
-    }
+    const command = MENU_ACTION_COMMANDS[action];
+    if (command) executeCommandInBun(command, window);
   });
 }

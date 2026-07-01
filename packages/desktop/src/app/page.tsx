@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePanelRef } from "react-resizable-panels";
 
+import { CommandProvider, useCommands, useRegisterCommands } from "@/commands";
 import { FileSystemTreeView } from "@/components/file-system-tree-view";
 import { SettingsDialog } from "@/components/settings/settings-dialog";
 import { ThreadTabs, useThreadTabs } from "@/components/thread-tabs";
@@ -14,46 +15,23 @@ import { electrobun } from "@/lib/electrobun";
 import { useFullScreen } from "@/lib/use-full-screen";
 
 export function Page() {
-  const tabs = useThreadTabs();
+  return (
+    <CommandProvider>
+      <PageInner />
+    </CommandProvider>
+  );
+}
 
-  // Bridge the native File-menu commands (sent over RPC from the bun process)
-  // into the tab state. `close`/`closeAll` are stable; the latest active tab is
-  // read through a ref so the listener never goes stale.
+function PageInner() {
+  const tabs = useThreadTabs();
+  const { executeCommand } = useCommands();
+
+  // The active tab is read through a ref so command handlers never go stale.
   const activePathRef = useRef(tabs.activePath);
   activePathRef.current = tabs.activePath;
   const { close, closeOthers, closeAll, reopenClosed } = tabs;
-  useEffect(() => {
-    const rpc = electrobun.rpc;
-    if (!rpc) return;
-    const onCloseActiveTab = () => {
-      if (activePathRef.current) close(activePathRef.current);
-    };
-    const onCloseOtherTabs = () => {
-      if (activePathRef.current) closeOthers(activePathRef.current);
-    };
-    const onCloseAllTabs = () => closeAll();
-    const onReopenClosedTabs = () => void reopenClosed();
-    rpc.addMessageListener("closeActiveTab", onCloseActiveTab);
-    rpc.addMessageListener("closeOtherTabs", onCloseOtherTabs);
-    rpc.addMessageListener("closeAllTabs", onCloseAllTabs);
-    rpc.addMessageListener("reopenClosedTabs", onReopenClosedTabs);
-    return () => {
-      rpc.removeMessageListener("closeActiveTab", onCloseActiveTab);
-      rpc.removeMessageListener("closeOtherTabs", onCloseOtherTabs);
-      rpc.removeMessageListener("closeAllTabs", onCloseAllTabs);
-      rpc.removeMessageListener("reopenClosedTabs", onReopenClosedTabs);
-    };
-  }, [close, closeOthers, closeAll, reopenClosed]);
 
-  // The "New file" tab button reuses the tree's create-thread flow: the tree
-  // registers it here, and the button (and ⌘N menu) trigger the same handler.
-  const newThreadRef = useRef<(() => void) | null>(null);
-  const registerNewThread = useCallback((fn: () => void) => {
-    newThreadRef.current = fn;
-  }, []);
-  const handleNewFile = useCallback(() => newThreadRef.current?.(), []);
-
-  // Collapse / expand the left side panel from the title-bar button.
+  // Collapse / expand the left side panel.
   const sidebarPanelRef = usePanelRef();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const toggleSidebar = useCallback(() => {
@@ -63,25 +41,36 @@ export function Page() {
     else panel.collapse();
   }, [sidebarPanelRef]);
 
-  // The View > Toggle Sidebar menu (⌘B) drives the same toggle over RPC.
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // Register the command handlers backed by page-level state (tabs, sidebar,
+  // settings). `newFile` / `newFolder` / the tree ops are registered by the
+  // file tree, which owns that state.
+  useRegisterCommands({
+    closeTab: ({ path }) => {
+      const target = path ?? activePathRef.current;
+      if (target) close(target);
+    },
+    closeOtherTabs: ({ path }) => {
+      const target = path ?? activePathRef.current;
+      if (target) closeOthers(target);
+    },
+    closeAllTabs: () => closeAll(),
+    reopenClosedTab: () => void reopenClosed(),
+    toggleSidebar: () => toggleSidebar(),
+    openSettings: () => setSettingsOpen(true),
+  });
+
+  // Bridge commands dispatched from the bun process (native menu / shortcuts)
+  // into the renderer dispatcher.
   useEffect(() => {
     const rpc = electrobun.rpc;
     if (!rpc) return;
-    rpc.addMessageListener("toggleSidebar", toggleSidebar);
-    return () => rpc.removeMessageListener("toggleSidebar", toggleSidebar);
-  }, [toggleSidebar]);
+    rpc.addMessageListener("executeCommand", executeCommand);
+    return () => rpc.removeMessageListener("executeCommand", executeCommand);
+  }, [executeCommand]);
 
   const fullScreen = useFullScreen();
-
-  // The app-menu "Settings..." command opens the Settings dialog over RPC.
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  useEffect(() => {
-    const rpc = electrobun.rpc;
-    if (!rpc) return;
-    const onOpenSettings = () => setSettingsOpen(true);
-    rpc.addMessageListener("openSettings", onOpenSettings);
-    return () => rpc.removeMessageListener("openSettings", onOpenSettings);
-  }, []);
 
   return (
     <div className="flex size-full flex-col">
@@ -97,17 +86,20 @@ export function Page() {
           >
             <FileSystemTreeView
               className="size-full"
-              registerNewThread={registerNewThread}
               onSelectFile={tabs.open}
               onRemove={tabs.handleRemove}
               onMove={tabs.handleMove}
-              onSettings={() => setSettingsOpen(true)}
             />
           </ResizablePanel>
           <ResizableHandle />
           <ResizablePanel minSize={640}>
             {tabs.tabs.length === 0 ? (
-              <Welcome onNewFile={handleNewFile} />
+              <Welcome
+                onNewFile={() => executeCommand({ type: "newFile", args: {} })}
+                onSettings={() =>
+                  executeCommand({ type: "openSettings", args: {} })
+                }
+              />
             ) : (
               <ThreadTabs
                 tabs={tabs.tabs}
@@ -115,10 +107,16 @@ export function Page() {
                 activate={tabs.activate}
                 sidebarOpen={sidebarOpen}
                 fullScreen={fullScreen}
-                close={tabs.close}
+                close={(path) =>
+                  executeCommand({ type: "closeTab", args: { path } })
+                }
                 reorder={tabs.reorder}
-                onNewFile={handleNewFile}
-                onToggleSidebar={toggleSidebar}
+                onNewFile={() =>
+                  executeCommand({ type: "newFile", args: {} })
+                }
+                onToggleSidebar={() =>
+                  executeCommand({ type: "toggleSidebar", args: {} })
+                }
               />
             )}
           </ResizablePanel>

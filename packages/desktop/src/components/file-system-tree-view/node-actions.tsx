@@ -13,6 +13,7 @@ import {
   Trash2,
 } from "lucide-react";
 
+import { useCommands } from "@/commands";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -111,34 +112,35 @@ function MoreActionsTrigger() {
 /**
  * Per-row hover actions. Shown inline: new file / new folder (directories
  * only). Everything else (reveal, rename, duplicate, delete) lives behind the
- * "..." overflow menu.
+ * "..." overflow menu. Every action dispatches a command via {@link useCommands}.
  */
-export function NodeActions({
-  node,
-  onNewFile,
-  onNewFolder,
-  onReveal,
-  onRename,
-  onDuplicate,
-  onDelete,
-}: {
-  node: FileNode;
-  onNewFile: (node: FileNode) => void;
-  onNewFolder: (node: FileNode) => void;
-  onReveal: (node: FileNode) => void;
-  onRename: (node: FileNode) => void;
-  onDuplicate: (node: FileNode) => void;
-  onDelete: (node: FileNode) => void;
-}) {
+export function NodeActions({ node }: { node: FileNode }) {
+  const { executeCommand } = useCommands();
   const isDir = node.type === "directory";
   return (
     <span className="flex items-center gap-0.5">
       {isDir && (
         <>
-          <IconAction label="New file" onClick={() => onNewFile(node)}>
+          <IconAction
+            label="New file"
+            onClick={() =>
+              executeCommand({
+                type: "newFile",
+                args: { parent: node.path, rename: true },
+              })
+            }
+          >
             <FilePlus className="size-4" />
           </IconAction>
-          <IconAction label="New folder" onClick={() => onNewFolder(node)}>
+          <IconAction
+            label="New folder"
+            onClick={() =>
+              executeCommand({
+                type: "newFolder",
+                args: { parent: node.path },
+              })
+            }
+          >
             <FolderPlus className="size-4" />
           </IconAction>
         </>
@@ -150,23 +152,40 @@ export function NodeActions({
           onClick={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
         >
-          <DropdownMenuItem onSelect={() => onReveal(node)}>
+          <DropdownMenuItem
+            onSelect={() =>
+              executeCommand({ type: "revealFile", args: { path: node.path } })
+            }
+          >
             <FolderOpen />
             {REVEAL_LABEL}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onSelect={() => onDuplicate(node)}>
+          <DropdownMenuItem
+            onSelect={() =>
+              executeCommand({
+                type: "duplicateFile",
+                args: { path: node.path },
+              })
+            }
+          >
             <Copy />
             Duplicate
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => onRename(node)}>
+          <DropdownMenuItem
+            onSelect={() =>
+              executeCommand({ type: "renameFile", args: { path: node.path } })
+            }
+          >
             <TextCursorInput />
             Rename
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             variant="destructive"
-            onSelect={() => onDelete(node)}
+            onSelect={() =>
+              executeCommand({ type: "deleteFile", args: { path: node.path } })
+            }
           >
             <Trash2 />
             {MOVE_TO_TRASH_LABEL}
@@ -179,41 +198,53 @@ export function NodeActions({
 
 /**
  * New file / new folder actions for the (row-less) storage root, with reveal
- * and refresh behind the "..." overflow menu.
+ * and refresh behind the "..." overflow menu. Every action dispatches a command
+ * via {@link useCommands}.
  */
-export function RootActions({
-  onNewFile,
-  onNewFolder,
-  onReveal,
-  onSettings,
-  onRefresh,
-}: {
-  onNewFile: () => void;
-  onNewFolder: () => void;
-  onSettings: () => void;
-  onReveal: () => void;
-  onRefresh: () => void;
-}) {
+export function RootActions() {
+  const { executeCommand } = useCommands();
   return (
     <span className="flex items-center gap-1">
-      <IconAction label="New file" onClick={onNewFile}>
+      <IconAction
+        label="New file"
+        onClick={() =>
+          executeCommand({
+            type: "newFile",
+            args: { parent: "", rename: true },
+          })
+        }
+      >
         <FilePlus className="size-4" />
       </IconAction>
-      <IconAction label="New folder" onClick={onNewFolder}>
+      <IconAction
+        label="New folder"
+        onClick={() =>
+          executeCommand({ type: "newFolder", args: { parent: "" } })
+        }
+      >
         <FolderPlus className="size-4" />
       </IconAction>
-      <IconAction label="Settings" onClick={onSettings}>
+      <IconAction
+        label="Settings"
+        onClick={() => executeCommand({ type: "openSettings", args: {} })}
+      >
         <SettingsIcon className="size-4" />
       </IconAction>
       <DropdownMenu>
         <MoreActionsTrigger />
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onSelect={onReveal}>
+          <DropdownMenuItem
+            onSelect={() =>
+              executeCommand({ type: "revealFile", args: { path: "" } })
+            }
+          >
             <FolderOpen />
             {REVEAL_LABEL}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onSelect={onRefresh}>
+          <DropdownMenuItem
+            onSelect={() => executeCommand({ type: "refreshTree", args: {} })}
+          >
             <RefreshCw />
             Refresh
           </DropdownMenuItem>

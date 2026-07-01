@@ -86,6 +86,11 @@ export const mainWindowRPC: MainWindowRPC =
           );
         },
         abortStreamThread: (payload) => abortStreamThread(payload),
+        executeCommand: async (command) => {
+          const { executeCommandInBun } = await import("../commands");
+          const { mainWindow } = await import("../app/window");
+          executeCommandInBun(command, mainWindow);
+        },
       },
     },
   });

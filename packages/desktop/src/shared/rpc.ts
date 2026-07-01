@@ -7,6 +7,8 @@ import type {
 } from "@llm-space/core";
 import type { RPCSchema } from "electrobun";
 
+import type { Command } from "./commands";
+
 /** A webview→bun request to start streaming an agent run. */
 export interface StreamThreadRequestPayload {
   streamId: string;
@@ -59,6 +61,9 @@ export interface DesktopRPCType {
     messages: {
       sendStreamThreadRequest: StreamThreadRequestPayload;
       abortStreamThread: AbortStreamThreadPayload;
+      // A unified command dispatched from the webview to run in the bun process
+      // (e.g. window zoom / reload). See `shared/commands.ts`.
+      executeCommand: Command;
     };
   }>;
   webview: RPCSchema<{
@@ -68,16 +73,9 @@ export interface DesktopRPCType {
       receiveStreamThreadResponse: StreamThreadResponsePayload;
       // OS-level fullscreen state changed (entered/exited).
       fullScreenChanged: { fullScreen: boolean };
-      // Toggle the left side panel.
-      toggleSidebar: Record<string, never>;
-      // Open the Settings dialog (from the app menu).
-      openSettings: Record<string, never>;
-      // Native File-menu commands, forwarded into the webview.
-      newThread: Record<string, never>;
-      closeActiveTab: Record<string, never>;
-      closeOtherTabs: Record<string, never>;
-      closeAllTabs: Record<string, never>;
-      reopenClosedTabs: Record<string, never>;
+      // A unified command dispatched from the bun process (native menu / global
+      // shortcuts) to run in the webview. See `shared/commands.ts`.
+      executeCommand: Command;
     };
   }>;
 }

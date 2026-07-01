@@ -4,6 +4,7 @@ import type { FileNode } from "@llm-space/core";
 import { MessagesSquare } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { useRegisterCommands } from "@/commands";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import {
   TreeView,
@@ -17,7 +18,6 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { Spinner } from "@/components/ui/spinner";
-import { electrobun } from "@/lib/electrobun";
 import { useFullScreen } from "@/lib/use-full-screen";
 import { cn } from "@/lib/utils";
 
@@ -40,8 +40,6 @@ export function FileSystemTreeView({
   onSelectFile,
   onRemove,
   onMove,
-  onSettings = () => void 0,
-  registerNewThread,
 }: {
   className?: string;
   /** Fired with a file's path when it is selected (folders aren't selectable). */
@@ -50,9 +48,6 @@ export function FileSystemTreeView({
   onRemove?: (path: string) => void;
   /** Fired after a path changes via rename or move (`from` → `to`). */
   onMove?: (from: string, to: string) => void;
-  onSettings?: () => void;
-  /** Hand the parent the "new thread at root" trigger (e.g. for a toolbar button). */
-  registerNewThread?: (fn: () => void) => void;
 }) {
   const fullScreen = useFullScreen();
   const {
@@ -96,25 +91,32 @@ export function FileSystemTreeView({
     onSelectFile?.(path);
   }
 
-  // "New Thread" menu command (over RPC from the bun process): create an
-  // auto-named thread at the workspace root, no in-place rename.
-  const createThread = useCallback(async () => {
-    const path = await createFile("");
-    if (path) setPendingThread(path);
-  }, [createFile]);
+  // Quick "new thread" flow (⌘N menu, tab-bar "+", welcome screen): create an
+  // auto-named thread in `parent` (root by default), no in-place rename.
+  const createThread = useCallback(
+    async (parent = "") => {
+      const path = await createFile(parent);
+      if (path) setPendingThread(path);
+    },
+    [createFile]
+  );
 
-  // Expose the trigger to the parent (the tab bar's "New file" button).
-  useEffect(() => {
-    registerNewThread?.(() => void createThread());
-  }, [registerNewThread, createThread]);
-
-  useEffect(() => {
-    const rpc = electrobun.rpc;
-    if (!rpc) return;
-    const onNewThread = () => void createThread();
-    rpc.addMessageListener("newThread", onNewThread);
-    return () => rpc.removeMessageListener("newThread", onNewThread);
-  }, [createThread]);
+  // The file-tree commands, backed by this component's state. The ⌘N menu /
+  // tab "+" / welcome dispatch `newFile` with no `rename`, giving the quick
+  // auto-named flow; the tree/root "New file" icons pass `rename: true` for the
+  // in-place rename flow.
+  useRegisterCommands({
+    newFile: ({ parent = "", rename }) => {
+      if (rename) void create(parent, "file");
+      else void createThread(parent);
+    },
+    newFolder: ({ parent = "" }) => void create(parent, "folder"),
+    renameFile: ({ path }) => startRenameByPath(path),
+    duplicateFile: ({ path }) => void duplicateNode(path),
+    deleteFile: ({ path }) => setDeleting(path),
+    revealFile: ({ path }) => void reveal(path),
+    refreshTree: () => refresh(),
+  });
 
   // Once the new thread shows up in its parent's listing, reveal it (select +
   // open + scroll), skipping the rename step the tree's own create flow uses.
@@ -181,17 +183,7 @@ export function FileSystemTreeView({
 
   const data = useMemo<TreeDataItem[]>(() => {
     const toItem = (node: FileNode): TreeDataItem => {
-      const actions = (
-        <NodeActions
-          node={node}
-          onNewFile={(n) => void create(n.path, "file")}
-          onNewFolder={(n) => void create(n.path, "folder")}
-          onReveal={(n) => void reveal(n.path)}
-          onRename={(n) => startRename(n)}
-          onDuplicate={(n) => void duplicateNode(n.path)}
-          onDelete={(n) => setDeleting(n.path)}
-        />
-      );
+      const actions = <NodeActions node={node} />;
       if (node.type === "directory") {
         const open = expanded.has(node.path);
         // Empty array stays truthy so the directory still renders an expand
@@ -232,22 +224,14 @@ export function FileSystemTreeView({
         .map(toItem);
 
     return build("");
-  }, [
-    nodesByPath,
-    loadingByPath,
-    expanded,
-    toggle,
-    remove,
-    renaming,
-    createFile,
-    createFolder,
-  ]);
+  }, [nodesByPath, loadingByPath, expanded, toggle, renaming]);
 
-  function startRename(node: FileNode) {
-    // Collapse a folder before renaming so it remounts consistently afterwards
-    // (the row is rendered as a leaf while editing).
-    if (node.type === "directory" && expanded.has(node.path)) toggle(node.path);
-    setRenaming(node.path);
+  // Start an in-place rename of the node at `path`. Only directories can be
+  // expanded, so collapse first (the row renders as a leaf while editing) to
+  // remount it consistently afterwards.
+  function startRenameByPath(path: string) {
+    if (expanded.has(path)) toggle(path);
+    setRenaming(path);
   }
 
   function onDocumentDrag(source: TreeDataItem, target: TreeDataItem) {
@@ -323,13 +307,7 @@ export function FileSystemTreeView({
           LLM Space 4
         </span>
         <span>
-          <RootActions
-            onNewFile={() => void create("", "file")}
-            onNewFolder={() => void create("", "folder")}
-            onSettings={onSettings}
-            onReveal={() => void reveal("")}
-            onRefresh={refresh}
-          />
+          <RootActions />
         </span>
       </header>
 
