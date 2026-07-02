@@ -55,6 +55,7 @@ export interface ThreadState {
   removeMessage(id: string): void;
   updateSystemPrompt(systemPrompt: string): void;
   updateTitle(title: string | undefined): void;
+  syncTitle(title: string): void;
   updateModelParams(params: Partial<ModelConfigParams>): void;
   updateModel(model: Pick<ModelConfig, "id" | "provider">): void;
   updateMessageTextContent(id: string, text: string): void;
@@ -236,6 +237,13 @@ export function createThreadStore(
         },
         updateTitle(title: string | undefined) {
           patchThread({ title });
+        },
+        syncTitle(title: string) {
+          const current = get().thread;
+          if (current.title === title) {
+            return;
+          }
+          set({ thread: { ...current, title } });
         },
         updateModelParams(params: Partial<ModelConfigParams>) {
           // Materialize the model on explicit param edits: fall back to the
@@ -572,6 +580,7 @@ const selectActions = (s: ThreadState) => ({
   removeMessage: s.removeMessage,
   updateSystemPrompt: s.updateSystemPrompt,
   updateTitle: s.updateTitle,
+  syncTitle: s.syncTitle,
   updateModelParams: s.updateModelParams,
   updateModel: s.updateModel,
   updateMessageTextContent: s.updateMessageTextContent,

@@ -6,6 +6,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { localFs } from "@/client";
+import {
+  basename,
+  joinPath,
+  normalizeThreadForPath,
+  parentOf,
+  threadTitleFromPath,
+} from "@/lib/thread-file";
 
 /** Query-key factory for a directory listing. */
 export const fsKeys = {
@@ -82,26 +89,6 @@ function uniqueCopyName(names: Set<string>, name: string): string {
   let n = 2;
   while (names.has(candidate)) candidate = `${stem}_copy_${n++}${ext}`;
   return candidate;
-}
-
-// --- POSIX path helpers (paths are relative to the storage root) -----------
-
-export function joinPath(parent: string, name: string): string {
-  return parent ? `${parent}/${name}` : name;
-}
-
-export function parentOf(path: string): string {
-  const i = path.lastIndexOf("/");
-  return i === -1 ? "" : path.slice(0, i);
-}
-
-export function basename(path: string): string {
-  const i = path.lastIndexOf("/");
-  return i === -1 ? path : path.slice(i + 1);
-}
-
-export function ensureJson(name: string): string {
-  return name.endsWith(".json") ? name : `${name}.json`;
 }
 
 function isSelfOrDescendant(ancestor: string, path: string): boolean {
@@ -267,13 +254,12 @@ export function useFileSystemTree(): FileSystemTree {
       let path: string;
       try {
         const names = new Set((await localFs.ls(parent)).map((n) => n.name));
-        const { name, index } = uniqueUntitled(names, ".json");
-        const title = index === 0 ? "Untitled" : `Untitled ${index}`;
+        const { name } = uniqueUntitled(names, ".json");
         path = joinPath(parent, name);
         // Model-less by default; the UI resolves a fallback model at run time.
         // Seed a single empty user message to edit.
         await localFs.write(path, {
-          title,
+          title: threadTitleFromPath(path),
           context: {
             messages: [
               { id: uuid(), role: "user", content: [{ type: "text", text: "" }] },
@@ -409,6 +395,10 @@ export function useFileSystemTree(): FileSystemTree {
       if (dest === path) return null;
       try {
         await localFs.mv(path, dest);
+        if (dest.endsWith(".json")) {
+          const thread = await localFs.read(dest);
+          await localFs.write(dest, normalizeThreadForPath(thread, dest));
+        }
       } catch (err) {
         toast.error((err as Error).message);
         return null;

@@ -82,11 +82,26 @@ const CUSTOM_PROVIDER_API_TYPES: {
   { value: "anthropic-messages", label: "Anthropic Messages" },
 ];
 
+function sortProviders(providers: ModelProviderGroup[]): ModelProviderGroup[] {
+  return [...providers].sort((a, b) => a.name.localeCompare(b.name));
+}
+
 export function ModelsPage() {
   const providers = useModels();
-  const [selectedId, setSelectedId] = useState<string | null>(
-    providers[0]?.id ?? null
+  const firstProviderId = useMemo(
+    () => sortProviders(providers)[0]?.id ?? null,
+    [providers]
   );
+  const [selectedId, setSelectedId] = useState<string | null>(firstProviderId);
+
+  useEffect(() => {
+    if (
+      !selectedId ||
+      !providers.some((provider) => provider.id === selectedId)
+    ) {
+      setSelectedId(firstProviderId);
+    }
+  }, [firstProviderId, providers, selectedId]);
 
   const selected =
     providers.find((provider) => provider.id === selectedId) ?? null;
@@ -123,7 +138,7 @@ function ProviderList({
     const matched = q
       ? providers.filter((provider) => provider.name.toLowerCase().includes(q))
       : providers;
-    return [...matched].sort((a, b) => a.name.localeCompare(b.name));
+    return sortProviders(matched);
   }, [providers, query]);
 
   return (

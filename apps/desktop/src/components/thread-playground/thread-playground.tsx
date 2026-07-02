@@ -11,6 +11,7 @@ import {
   useFirstAvailableModel,
   useModels,
 } from "@/components/model-provider";
+import { threadTitleFromPath } from "@/lib/thread-file";
 import { cn } from "@/lib/utils";
 
 import { Tooltip } from "../tooltip";
@@ -43,6 +44,7 @@ import { useThreadPlaygroundEvents } from "./use-thread-playground-events";
 
 export interface ThreadPlaygroundProps {
   className?: string;
+  path: string;
   initialValue: Thread;
   readonly?: boolean;
   /**
@@ -55,6 +57,7 @@ export interface ThreadPlaygroundProps {
   transport?: AgentTransport;
 
   onChange?: (thread: Thread) => void;
+  onRenameTitle?: (title: string) => Promise<boolean>;
   onStreamingStart?: () => void;
   onStreamingEnd?: () => void;
 }
@@ -149,6 +152,8 @@ const RUN_HISTORY_PANEL_SIZE = "16rem";
 
 function ThreadPlaygroundContent({
   className,
+  path,
+  onRenameTitle,
   readonly: readonlyFromProps = false,
   active = false,
 }: Omit<
@@ -163,7 +168,11 @@ function ThreadPlaygroundContent({
   const hasModel = Boolean(savedModel ?? fallbackModel);
   const undoable = useThreadStore((s) => canUndo(s.changeHistory));
   const redoable = useThreadStore((s) => canRedo(s.changeHistory));
-  const { run, abort, undo, redo } = useThreadStoreActions();
+  const { run, abort, undo, redo, syncTitle } = useThreadStoreActions();
+  const title = useMemo(() => threadTitleFromPath(path), [path]);
+  useEffect(() => {
+    syncTitle(title);
+  }, [syncTitle, title]);
   const readonly = useMemo(() => {
     return readonlyFromProps || status === "running";
   }, [readonlyFromProps, status]);
@@ -216,7 +225,12 @@ function ThreadPlaygroundContent({
         <ResizablePanel className="flex min-h-0 flex-col overflow-hidden">
           <header className="flex h-12 w-full shrink-0 items-center border-b">
             <div className="min-w-0 grow px-3">
-              <TitleEditor className="w-96 max-w-full" readonly={readonly} />
+              <TitleEditor
+                className="w-96 max-w-full"
+                title={title}
+                readonly={readonly}
+                onRename={onRenameTitle}
+              />
             </div>
             <div
               className={cn(

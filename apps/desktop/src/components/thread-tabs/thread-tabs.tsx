@@ -14,11 +14,11 @@ import { Button } from "../ui/button";
 import { Kbd, KbdGroup } from "../ui/kbd";
 
 import { ThreadTabPane } from "./thread-tab-pane";
-import { tabLabel } from "./use-thread-tabs";
+import { tabLabel, type ThreadTab } from "./use-thread-tabs";
 
 interface ThreadTabsProps {
   className?: string;
-  tabs: string[];
+  tabs: ThreadTab[];
   activePath: string | null;
   sidebarOpen?: boolean;
   fullScreen?: boolean;
@@ -27,6 +27,7 @@ interface ThreadTabsProps {
   reorder: (from: number, to: number) => void;
   /** Create a new thread at the workspace root (auto-named, opened, selected). */
   onNewFile?: () => void;
+  onMove?: (from: string, to: string) => void;
   onToggleSidebar?: () => void;
 }
 
@@ -40,6 +41,7 @@ export function ThreadTabs({
   close,
   reorder,
   onNewFile,
+  onMove,
   onToggleSidebar,
 }: ThreadTabsProps) {
   // The chrome-tabs lib renders tab DOM imperatively and exposes no tooltip prop,
@@ -146,11 +148,11 @@ export function ThreadTabs({
         <Tabs
           className="grow"
           darkMode
-          tabs={tabs.map((path) => ({
-            id: path,
-            title: tabLabel(path),
+          tabs={tabs.map((tab) => ({
+            id: tab.path,
+            title: tabLabel(tab.path),
             favicon: false,
-            active: path === activePath,
+            active: tab.path === activePath,
           }))}
           pinnedRight={
             <div className="flex h-full items-center pt-0.5 pl-1.5">
@@ -173,8 +175,13 @@ export function ThreadTabs({
         />
       </div>
       <div className="relative min-h-0 flex-1">
-        {tabs.map((path) => (
-          <ThreadTabPane key={path} path={path} active={path === activePath} />
+        {tabs.map((tab) => (
+          <ThreadTabPane
+            key={tab.id}
+            path={tab.path}
+            active={tab.path === activePath}
+            onMove={onMove}
+          />
         ))}
       </div>
     </div>

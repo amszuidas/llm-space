@@ -152,6 +152,7 @@ function PageInner() {
                 }
                 reorder={tabs.reorder}
                 onNewFile={() => executeCommand({ type: "newFile", args: {} })}
+                onMove={tabs.handleMove}
                 onToggleSidebar={() =>
                   executeCommand({ type: "toggleSidebar", args: {} })
                 }

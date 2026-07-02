@@ -1,6 +1,7 @@
 import type { FileNode, FileSystem, Thread, ThreadStorage } from "@llm-space/core";
 
 import { electrobun } from "@/lib/electrobun";
+import { normalizeThreadForPath } from "@/lib/thread-file";
 
 /**
  * Client-side `FileSystem` + `ThreadStorage` that talks to the bun side over
@@ -29,12 +30,16 @@ export class LocalFileSystemClient implements FileSystem, ThreadStorage {
     await this._rpc().request.fsRm({ path });
   }
 
-  read(path: string): Promise<Thread> {
-    return this._rpc().request.fsRead({ path });
+  async read(path: string): Promise<Thread> {
+    const thread = await this._rpc().request.fsRead({ path });
+    return normalizeThreadForPath(thread, path);
   }
 
   async write(path: string, thread: Thread): Promise<void> {
-    await this._rpc().request.fsWrite({ path, thread });
+    await this._rpc().request.fsWrite({
+      path,
+      thread: normalizeThreadForPath(thread, path),
+    });
   }
 
   /** Reveal a file/directory in the OS file manager (Finder/Explorer). */

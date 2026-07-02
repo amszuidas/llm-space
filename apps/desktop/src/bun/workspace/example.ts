@@ -6,7 +6,7 @@ import type { Thread } from "@llm-space/core";
  * is validated at compile time and stays the single source of truth.
  */
 export const EXAMPLE_THREAD: Thread = {
-  title: "Demo",
+  title: "example",
   context: {
     systemPrompt:
       "<role>\nYou are a helpful assistant that can help with tasks and questions using the given tools.\n</role>",

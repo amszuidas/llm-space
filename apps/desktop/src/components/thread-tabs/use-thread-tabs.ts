@@ -6,15 +6,21 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { localFs } from "@/client";
+import { normalizeThreadForPath, threadTitleFromPath } from "@/lib/thread-file";
+
+export interface ThreadTab {
+  id: string;
+  path: string;
+}
 
 /** Derive a tab label from a thread file path (basename without `.json`). */
 export function tabLabel(path: string): string {
-  return path.split("/").pop()!.replace(/\.json$/, "");
+  return threadTitleFromPath(path);
 }
 
 export interface ThreadTabs {
   /** Open file paths, in tab order. */
-  tabs: string[];
+  tabs: ThreadTab[];
   /** Currently focused tab, or `null` when no tabs are open. */
   activePath: string | null;
   /**
@@ -54,6 +60,12 @@ const ACTIVE_KEY = "llm-space:active-tab";
  * everything stays empty).
  */
 const FIRST_RUN_TABS = ["example.json"];
+let nextTabId = 0;
+
+function _createTab(path: string): ThreadTab {
+  nextTabId += 1;
+  return { id: `tab-${nextTabId}`, path };
+}
 
 /**
  * Read the persisted tab paths. On first launch (the key was never written)
@@ -124,7 +136,9 @@ async function _fileExists(path: string): Promise<boolean> {
 
 export function useThreadTabs(): ThreadTabs {
   const qc = useQueryClient();
-  const [tabs, setTabs] = useState<string[]>(_loadPersistedTabs);
+  const [tabs, setTabs] = useState<ThreadTab[]>(() =>
+    _loadPersistedTabs().map(_createTab)
+  );
   const [activePath, setActivePath] = useState<string | null>(() => {
     const restored = _loadPersistedTabs();
     const active = _loadPersistedActive();
@@ -147,7 +161,7 @@ export function useThreadTabs(): ThreadTabs {
 
   // Persist the open tabs after any change (open/close/reorder/move/…).
   useEffect(() => {
-    _savePersistedTabs(tabs);
+    _savePersistedTabs(tabs.map((tab) => tab.path));
   }, [tabs]);
 
   // Persist the active tab so it is re-focused on the next launch.
@@ -163,16 +177,17 @@ export function useThreadTabs(): ThreadTabs {
     if (restored.length === 0) return;
     let cancelled = false;
     void Promise.all(
-      restored.map(async (p) => ((await _fileExists(p)) ? p : null))
+      restored.map(async (tab) => ((await _fileExists(tab.path)) ? tab : null))
     ).then((checked) => {
       if (cancelled) return;
-      const alive = checked.filter((p): p is string => p !== null);
+      const alive = checked.filter((tab): tab is ThreadTab => tab !== null);
       if (alive.length !== restored.length) setTabs(alive);
       // Keep the restored active tab when it survived; otherwise the first.
+      const alivePaths = alive.map((tab) => tab.path);
       setActivePath(
-        restoredActive !== null && alive.includes(restoredActive)
+        restoredActive !== null && alivePaths.includes(restoredActive)
           ? restoredActive
-          : (alive[0] ?? null)
+          : (alive[0]?.path ?? null)
       );
     });
     return () => {
@@ -182,7 +197,7 @@ export function useThreadTabs(): ThreadTabs {
 
   const open = useCallback(async (path: string) => {
     // Re-focusing an already-open tab needs no existence check.
-    if (tabsRef.current.includes(path)) {
+    if (tabsRef.current.some((tab) => tab.path === path)) {
       setActivePath(path);
       return;
     }
@@ -193,7 +208,9 @@ export function useThreadTabs(): ThreadTabs {
       toast.error("Error", { description: `File not found: ${path}` });
       return;
     }
-    setTabs((prev) => (prev.includes(path) ? prev : [...prev, path]));
+    setTabs((prev) =>
+      prev.some((tab) => tab.path === path) ? prev : [...prev, _createTab(path)]
+    );
     setActivePath(path);
   }, []);
 
@@ -204,13 +221,15 @@ export function useThreadTabs(): ThreadTabs {
   const close = useCallback(
     (path: string) => {
       setTabs((prev) => {
-        const index = prev.indexOf(path);
+        const index = prev.findIndex((tab) => tab.path === path);
         if (index === -1) return prev;
-        const next = prev.filter((p) => p !== path);
+        const next = prev.filter((tab) => tab.path !== path);
         pushClosed([path]);
         // If we closed the active tab, focus its left neighbor (else the right one).
         setActivePath((current) =>
-          current === path ? (next[index - 1] ?? next[index] ?? null) : current
+          current === path
+            ? (next[index - 1]?.path ?? next[index]?.path ?? null)
+            : current
         );
         return next;
       });
@@ -221,9 +240,11 @@ export function useThreadTabs(): ThreadTabs {
   const closeOthers = useCallback(
     (keep: string) => {
       setTabs((prev) => {
-        if (!prev.includes(keep)) return prev;
-        pushClosed(prev.filter((p) => p !== keep));
-        return [keep];
+        if (!prev.some((tab) => tab.path === keep)) return prev;
+        pushClosed(
+          prev.filter((tab) => tab.path !== keep).map((tab) => tab.path)
+        );
+        return prev.filter((tab) => tab.path === keep);
       });
       setActivePath((current) => (current === keep ? current : keep));
     },
@@ -231,7 +252,7 @@ export function useThreadTabs(): ThreadTabs {
   );
 
   const closeAll = useCallback(() => {
-    pushClosed(tabsRef.current);
+    pushClosed(tabsRef.current.map((tab) => tab.path));
     setTabs([]);
     setActivePath(null);
   }, [pushClosed]);
@@ -246,7 +267,12 @@ export function useThreadTabs(): ThreadTabs {
       )
     ).filter((p): p is string => p !== null);
     if (alive.length === 0) return;
-    setTabs((prev) => [...prev, ...alive.filter((p) => !prev.includes(p))]);
+    setTabs((prev) => [
+      ...prev,
+      ...alive
+        .filter((path) => !prev.some((tab) => tab.path === path))
+        .map(_createTab),
+    ]);
     setActivePath(alive[alive.length - 1] ?? null);
   }, []);
 
@@ -255,7 +281,7 @@ export function useThreadTabs(): ThreadTabs {
       if (from === to || from < 0 || to < 0) return prev;
       if (from >= prev.length || to >= prev.length) return prev;
       const next = [...prev];
-      const [moved] = next.splice(from, 1) as [string];
+      const [moved] = next.splice(from, 1) as [ThreadTab];
       next.splice(to, 0, moved);
       return next;
     });
@@ -263,11 +289,11 @@ export function useThreadTabs(): ThreadTabs {
 
   const handleRemove = useCallback((removed: string) => {
     setTabs((prev) => {
-      const next = prev.filter((p) => !_isUnder(p, removed));
+      const next = prev.filter((tab) => !_isUnder(tab.path, removed));
       if (next.length === prev.length) return prev;
       setActivePath((current) =>
         current !== null && _isUnder(current, removed)
-          ? (next[next.length - 1] ?? null)
+          ? (next[next.length - 1]?.path ?? null)
           : current
       );
       return next;
@@ -280,15 +306,17 @@ export function useThreadTabs(): ThreadTabs {
         p === from ? to : _isUnder(p, from) ? to + p.slice(from.length) : p;
 
       setTabs((prev) => {
-        if (!prev.some((p) => _isUnder(p, from))) return prev;
+        if (!prev.some((tab) => _isUnder(tab.path, from))) return prev;
         // Carry the read cache to the new key so the playground doesn't reload.
-        for (const p of prev) {
-          const next = rewrite(p);
-          if (next === p) continue;
-          const cached = qc.getQueryData<Thread>(["thread", p]);
-          if (cached !== undefined) qc.setQueryData(["thread", next], cached);
+        for (const tab of prev) {
+          const next = rewrite(tab.path);
+          if (next === tab.path) continue;
+          const cached = qc.getQueryData<Thread>(["thread", tab.path]);
+          if (cached !== undefined) {
+            qc.setQueryData(["thread", next], normalizeThreadForPath(cached, next));
+          }
         }
-        return prev.map(rewrite);
+        return prev.map((tab) => ({ ...tab, path: rewrite(tab.path) }));
       });
       setActivePath((current) => (current === null ? current : rewrite(current)));
     },

@@ -18,16 +18,17 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { Spinner } from "@/components/ui/spinner";
+import {
+  basename,
+  parentOf,
+  threadFileNameFromTitle,
+  validateThreadFileStem,
+} from "@/lib/thread-file";
 import { useFullScreen } from "@/lib/use-full-screen";
 import { cn } from "@/lib/utils";
 
 import { NodeActions, RootActions } from "./node-actions";
-import {
-  basename,
-  ensureJson,
-  parentOf,
-  useFileSystemTree,
-} from "./use-file-system-tree";
+import { useFileSystemTree } from "./use-file-system-tree";
 
 /** What the OS calls its trash, for the delete-confirmation copy. */
 const TRASH_NAME =
@@ -271,7 +272,10 @@ export function FileSystemTreeView({
               if (base && base !== p.item.name) {
                 // `Icon` is only set on files, so it distinguishes file vs
                 // folder even while the row is rendered as a leaf for renaming.
-                void rename(from, Icon ? ensureJson(base) : base).then((to) => {
+                void rename(
+                  from,
+                  Icon ? threadFileNameFromTitle(base) : base
+                ).then((to) => {
                   if (to) {
                     onMove?.(from, to);
                     if (openAfter) revealCreatedFile(to);
@@ -378,29 +382,44 @@ function RenameInput({
   onCancel: () => void;
 }) {
   const [value, setValue] = useState(initial);
+  const validation = validateThreadFileStem(value);
   return (
-    <input
-      autoFocus
-      value={value}
-      className="ring-border bg-background text-foreground focus-visible:ring-ring/50 box-border h-5 w-full min-w-0 grow rounded px-1 text-sm leading-none ring-1 outline-none ring-inset focus-visible:ring-2"
-      onChange={(e) => setValue(e.target.value)}
-      onClick={(e) => e.stopPropagation()}
-      onPointerDown={(e) => e.stopPropagation()}
-      onFocus={(e) => e.currentTarget.select()}
-      onBlur={onCancel}
-      onKeyDown={(e) => {
-        // Stop the accordion trigger (this input lives inside its button) from
-        // reacting to keys like Space/Enter that would toggle the node.
-        e.stopPropagation();
-        e.nativeEvent.stopImmediatePropagation();
-        if (e.key === "Enter") {
-          e.preventDefault();
-          onConfirm(value);
-        } else if (e.key === "Escape") {
-          e.preventDefault();
-          onCancel();
-        }
-      }}
-    />
+    <span className="relative min-w-0 grow">
+      <input
+        autoFocus
+        value={value}
+        aria-invalid={!validation.valid}
+        aria-describedby="tree-rename-error"
+        className="ring-border bg-background text-foreground focus-visible:ring-ring/50 aria-invalid:ring-destructive/40 aria-invalid:focus-visible:ring-destructive/50 box-border h-5 w-full min-w-0 grow rounded px-1 text-sm leading-none ring-1 outline-none ring-inset focus-visible:ring-2"
+        onChange={(e) => setValue(e.target.value)}
+        onClick={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
+        onFocus={(e) => e.currentTarget.select()}
+        onBlur={onCancel}
+        onKeyDown={(e) => {
+          // Stop the accordion trigger (this input lives inside its button) from
+          // reacting to keys like Space/Enter that would toggle the node.
+          e.stopPropagation();
+          e.nativeEvent.stopImmediatePropagation();
+          if (e.key === "Enter") {
+            e.preventDefault();
+            if (validation.valid) {
+              onConfirm(validation.value);
+            }
+          } else if (e.key === "Escape") {
+            e.preventDefault();
+            onCancel();
+          }
+        }}
+      />
+      {!validation.valid && (
+        <span
+          id="tree-rename-error"
+          className="text-destructive bg-background absolute top-full left-1 z-10 mt-1 whitespace-nowrap text-xs"
+        >
+          {validation.error}
+        </span>
+      )}
+    </span>
   );
 }
