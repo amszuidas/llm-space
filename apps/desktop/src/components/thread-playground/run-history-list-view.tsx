@@ -89,6 +89,12 @@ function _RunHistoryListView({ onClose }: { onClose: () => void }) {
       setEvaluationOpen(true);
     }
   }, [comparisonRuns]);
+  const handleRestoreRun = useCallback(
+    (thread: RunSnapshot["thread"]) => {
+      restoreThread(thread);
+    },
+    [restoreThread]
+  );
 
   return (
     <div className="flex size-full flex-col">
@@ -134,13 +140,13 @@ function _RunHistoryListView({ onClose }: { onClose: () => void }) {
             </div>
           ) : (
             runs.map((run, index) => (
-              <_RunHistoryItem
+              <RunHistoryItem
                 key={run.id}
                 run={run}
                 newest={index === 0}
                 selected={selectedRunIds.includes(run.id)}
                 onToggleSelected={toggleRunSelection}
-                onRestore={(thread) => restoreThread(thread)}
+                onRestore={handleRestoreRun}
               />
             ))
           )}
@@ -201,9 +207,9 @@ function _RunHistoryItem({
           variant={selected ? "default" : "outline"}
           size="icon-xs"
           className={cn(
-            "pointer-events-none absolute top-2.5 right-10 z-10 opacity-0 shadow-sm transition-opacity",
-            "group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100",
-            selected && "pointer-events-auto opacity-100"
+            "absolute top-2.5 right-10 z-10 opacity-40 shadow-sm transition-opacity",
+            "hover:opacity-100 focus-visible:opacity-100 group-hover:opacity-100 group-focus-within:opacity-100",
+            selected && "opacity-100"
           )}
           aria-label={
             selected
@@ -217,13 +223,7 @@ function _RunHistoryItem({
         </Button>
       </Tooltip>
       <div className="flex w-full min-w-0 items-start gap-2">
-        <ItemContent
-          className={cn(
-            "min-w-0 transition-[padding]",
-            "group-hover:pr-7 group-focus-within:pr-7",
-            selected && "pr-7"
-          )}
-        >
+        <ItemContent className="min-w-0 pr-7">
           <ItemDescription className="text-foreground/60 group-hover:text-foreground line-clamp-2 w-full font-mono">
             {summary}
           </ItemDescription>
@@ -248,6 +248,8 @@ function _RunHistoryItem({
     </Item>
   );
 }
+
+const RunHistoryItem = memo(_RunHistoryItem);
 
 function _EvaluationList({
   evaluations,
@@ -323,11 +325,48 @@ function _findEvaluation(
   leftRunId: string,
   rightRunId: string
 ): EvaluationRecord | null {
-  return (
-    evaluations.find(
-      (evaluation) =>
-        evaluation.leftRunId === leftRunId &&
-        evaluation.rightRunId === rightRunId
-    ) ?? null
+  const evaluation = evaluations.find((evaluation) =>
+    _isSameRunPair(evaluation, leftRunId, rightRunId)
   );
+  if (!evaluation) {
+    return null;
+  }
+  if (
+    evaluation.leftRunId === leftRunId &&
+    evaluation.rightRunId === rightRunId
+  ) {
+    return evaluation;
+  }
+  return {
+    ...evaluation,
+    leftRunId,
+    rightRunId,
+    verdict: _flipEvaluationVerdict(evaluation.verdict),
+  };
+}
+
+/** Treat a comparison as the same pair even when the current A/B order flips. */
+function _isSameRunPair(
+  evaluation: EvaluationRecord,
+  leftRunId: string,
+  rightRunId: string
+): boolean {
+  return (
+    (evaluation.leftRunId === leftRunId &&
+      evaluation.rightRunId === rightRunId) ||
+    (evaluation.leftRunId === rightRunId && evaluation.rightRunId === leftRunId)
+  );
+}
+
+/** Convert a stored verdict into the currently displayed A/B orientation. */
+function _flipEvaluationVerdict(
+  verdict: EvaluationRecord["verdict"]
+): EvaluationRecord["verdict"] {
+  if (verdict === "leftBetter") {
+    return "rightBetter";
+  }
+  if (verdict === "rightBetter") {
+    return "leftBetter";
+  }
+  return verdict;
 }
