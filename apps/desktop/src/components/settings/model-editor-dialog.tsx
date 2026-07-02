@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 
-import { useUpsertCustomModel } from "../model-provider";
+import { useUpdateProvider, useUpsertCustomModel } from "../model-provider";
 
 /** The selectable API types, ordered alphabetically by label. */
 const API_TYPES: { value: Api; label: string }[] = [
@@ -47,12 +47,15 @@ interface FormState {
   maxTokens: number;
 }
 
-function initialState(model: CustomModel | null | undefined): FormState {
+function initialState(
+  model: CustomModel | null | undefined,
+  api: Api = DEFAULT_API
+): FormState {
   if (!model) {
     return {
       id: "",
       name: "",
-      api: DEFAULT_API,
+      api,
       reasoning: false,
       deepseekThinking: false,
       image: false,
@@ -84,23 +87,28 @@ export function ModelEditorDialog({
   open,
   onOpenChange,
   providerId,
+  providerApi,
   model,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   providerId: string;
+  providerApi?: Api;
   model?: CustomModel | null;
 }) {
+  const updateProvider = useUpdateProvider();
   const upsertCustomModel = useUpsertCustomModel();
-  const [form, setForm] = useState<FormState>(() => initialState(model));
+  const [form, setForm] = useState<FormState>(() =>
+    initialState(model, providerApi)
+  );
 
   // Reset the form whenever the dialog opens (for a fresh create or a different
   // model to edit).
   useEffect(() => {
     if (open) {
-      setForm(initialState(model));
+      setForm(initialState(model, providerApi));
     }
-  }, [open, model]);
+  }, [open, model, providerApi]);
 
   const isEdit = Boolean(model);
 
@@ -135,7 +143,12 @@ export function ModelEditorDialog({
           : {}),
       },
     };
-    void upsertCustomModel(providerId, built, model?.id);
+    void (async () => {
+      if (providerApi && form.api !== providerApi) {
+        await updateProvider(providerId, { api: form.api });
+      }
+      await upsertCustomModel(providerId, built, model?.id);
+    })();
     onOpenChange(false);
   };
 

@@ -17,6 +17,7 @@ async function getModelProviderGroups() {
       models: provider.getModels(),
       apiKey: await modelManager.getApiKey(provider.id, false),
       baseUrl: modelManager.getBaseUrl(provider.id),
+      api: modelManager.getApi(provider.id),
       disabledModels: modelManager.getDisabledModels(provider.id),
       customModels: modelManager.getCustomModels(provider.id),
       websiteLink: modelManager.getWebsiteLink(provider.id),
@@ -46,12 +47,17 @@ export const mainWindowRPC: MainWindowRPC =
           modelManager.addBuiltInProvider({ id: providerId });
           return getModelProviderGroups();
         },
-        addCustomProvider: async ({ id, name, baseUrl }) => {
-          modelManager.addCustomProvider({ id, name, baseUrl });
+        addCustomProvider: async ({ id, name, baseUrl, api }) => {
+          modelManager.addCustomProvider({ id, name, baseUrl, api });
           return getModelProviderGroups();
         },
-        updateProvider: async ({ providerId, apiKey, baseUrl, name }) => {
-          modelManager.updateProvider(providerId, { apiKey, baseUrl, name });
+        updateProvider: async ({ providerId, apiKey, baseUrl, name, api }) => {
+          modelManager.updateProvider(providerId, {
+            apiKey,
+            baseUrl,
+            name,
+            api,
+          });
           return getModelProviderGroups();
         },
         setModelEnabled: async ({ providerId, modelId, enabled }) => {

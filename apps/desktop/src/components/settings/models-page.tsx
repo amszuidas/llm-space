@@ -14,7 +14,8 @@ import {
   Search,
   Trash2,
 } from "lucide-react";
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -33,6 +34,13 @@ import {
   ItemMedia,
   ItemTitle,
 } from "@/components/ui/item";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useAutoAnimation } from "@/lib/use-auto-animation";
 import { cn } from "@/lib/utils";
@@ -57,6 +65,22 @@ import { ScrollArea } from "../ui/scroll-area";
 
 import { ModelEditorDialog } from "./model-editor-dialog";
 import { SettingsPage } from "./settings-page";
+
+type CustomProviderApi =
+  | "anthropic-messages"
+  | "openai-completions"
+  | "openai-responses";
+
+const DEFAULT_CUSTOM_PROVIDER_API: CustomProviderApi = "openai-completions";
+
+const CUSTOM_PROVIDER_API_TYPES: {
+  value: CustomProviderApi;
+  label: string;
+}[] = [
+  { value: "openai-completions", label: "OpenAI Completions" },
+  { value: "openai-responses", label: "OpenAI Responses" },
+  { value: "anthropic-messages", label: "Anthropic Messages" },
+];
 
 export function ModelsPage() {
   const providers = useModels();
@@ -249,7 +273,6 @@ function AddProviderMenu({ onAdd }: { onAdd: (id: string) => void }) {
         align="start"
         className="max-h-80 w-72 overflow-y-auto"
       >
-        <DropdownMenuLabel>User custom provider</DropdownMenuLabel>
         <DropdownMenuItem
           onSelect={() =>
             void addCustomProvider("Custom provider", "").then(onAdd)
@@ -389,6 +412,9 @@ function ProviderEditor({ provider }: { provider: ModelProviderGroup | null }) {
   const [modelView, setModelView] = useState<"all" | "enabled" | "disabled">(
     "all"
   );
+  const [apiValue, setApiValue] = useState<CustomProviderApi>(
+    DEFAULT_CUSTOM_PROVIDER_API
+  );
   const [modelListRef] = useAutoAnimation<HTMLDivElement>();
   const [editorOpen, setEditorOpen] = useState(false);
   // The custom model being edited, or `null` for a fresh create.
@@ -414,6 +440,10 @@ function ProviderEditor({ provider }: { provider: ModelProviderGroup | null }) {
     [provider]
   );
 
+  useEffect(() => {
+    setApiValue(provider?.api ?? DEFAULT_CUSTOM_PROVIDER_API);
+  }, [provider?.api, provider?.id]);
+
   // Persist on blur, but only when the value actually changed. An empty field
   // clears the key (stored as `null`).
   const handleApiKeyBlur = (event: React.FocusEvent<HTMLInputElement>) => {
@@ -433,6 +463,24 @@ function ProviderEditor({ provider }: { provider: ModelProviderGroup | null }) {
       return;
     }
     void updateProvider(provider.id, { name: value });
+  };
+
+  const handleApiChange = (api: CustomProviderApi) => {
+    if (!provider) {
+      return;
+    }
+    const previous = apiValue;
+    setApiValue(api);
+    if (api === previous) {
+      return;
+    }
+    void updateProvider(provider.id, { api }).catch((error) => {
+      setApiValue(previous);
+      toast.error("Failed to update API type", {
+        description:
+          error instanceof Error ? error.message : "Please try again.",
+      });
+    });
   };
 
   // Persist the custom base URL on blur when changed. Empty ⇒ use the default.
@@ -496,15 +544,41 @@ function ProviderEditor({ provider }: { provider: ModelProviderGroup | null }) {
           </div>
 
           {!isBuiltin && (
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium">Name</label>
-              <Input
-                defaultValue={provider.name}
-                placeholder="Custom provider"
-                aria-label="Custom provider name"
-                onBlur={handleNameBlur}
-              />
-            </div>
+            <>
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium">Name</label>
+                <Input
+                  defaultValue={provider.name}
+                  placeholder="Custom provider"
+                  aria-label="Custom provider name"
+                  onBlur={handleNameBlur}
+                />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium">API type</label>
+                <Select
+                  value={apiValue}
+                  onValueChange={(value) =>
+                    handleApiChange(value as CustomProviderApi)
+                  }
+                >
+                  <SelectTrigger
+                    className="w-full"
+                    aria-label={`${provider.name} API type`}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CUSTOM_PROVIDER_API_TYPES.map((type) => (
+                      <SelectItem key={type.value} value={type.value}>
+                        {type.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
           )}
 
           {provider.id !== "openai-codex" && (
@@ -688,6 +762,7 @@ function ProviderEditor({ provider }: { provider: ModelProviderGroup | null }) {
         open={editorOpen}
         onOpenChange={setEditorOpen}
         providerId={provider.id}
+        providerApi={isBuiltin ? undefined : apiValue}
         model={editingModel}
       />
     </div>

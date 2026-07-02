@@ -18,7 +18,13 @@ import {
   BUILTIN_PROVIDERS,
 } from "./providers/builtin-providers";
 import { createCustomProvider } from "./providers/custom-provider";
-import type { CustomModelConfig, ModelsConfig, ProviderConfig } from "./types";
+import {
+  DEFAULT_CUSTOM_PROVIDER_API,
+  type CustomModelConfig,
+  type CustomProviderApi,
+  type ModelsConfig,
+  type ProviderConfig,
+} from "./types";
 
 /**
  * Owns `settings/models.json`: the single in-memory source of truth for the
@@ -39,7 +45,9 @@ export class ModelManager {
     this._config = this._loadConfig();
     // Keep each provider's `customModels` in sync with its `models` list so the
     // renderer always sees which models are user-added, then persist any change.
-    if (this._normalizeCustomModels()) {
+    const providersChanged = this._normalizeCustomProviders();
+    const modelsChanged = this._normalizeCustomModels();
+    if (providersChanged || modelsChanged) {
       this._saveConfig();
     }
   }
@@ -85,16 +93,18 @@ export class ModelManager {
     id,
     name,
     baseUrl,
+    api = DEFAULT_CUSTOM_PROVIDER_API,
   }: {
     id: string;
     name: string;
     baseUrl: string;
+    api?: CustomProviderApi;
   }): void {
     if (this._config.providers.some((entry) => entry.id === id)) {
       throw new Error(`Provider already configured: ${id}`);
     }
 
-    this._config.providers.push({ id, name, baseUrl });
+    this._config.providers.push({ id, name, baseUrl, api });
 
     this._models = null;
     this._saveConfig();
@@ -112,10 +122,12 @@ export class ModelManager {
       apiKey,
       baseUrl,
       name,
+      api,
     }: {
       apiKey?: string | null;
       baseUrl?: string | null;
       name?: string | null;
+      api?: CustomProviderApi | null;
     }
   ): void {
     const entry = this._config.providers.find(
@@ -136,6 +148,10 @@ export class ModelManager {
       if (name === null) delete entry.name;
       else entry.name = name;
     }
+    if (api !== undefined) {
+      if (api === null) delete entry.api;
+      else entry.api = api;
+    }
     // Rebuild the registry so a cleared baseUrl restores the model's default
     // (the cached model instance would otherwise keep the mutated value).
     this._models = null;
@@ -146,6 +162,17 @@ export class ModelManager {
   getBaseUrl(providerId: string): string | undefined {
     return this._config.providers.find((entry) => entry.id === providerId)
       ?.baseUrl;
+  }
+
+  /** The selected API compatibility mode for a custom provider. */
+  getApi(providerId: string): CustomProviderApi | undefined {
+    const entry = this._config.providers.find(
+      (provider) => provider.id === providerId
+    );
+    if (!entry || entry.builtin === true) {
+      return undefined;
+    }
+    return entry.api ?? DEFAULT_CUSTOM_PROVIDER_API;
   }
 
   /** The model ids the user has disabled for a provider (empty by default). */
@@ -389,6 +416,7 @@ export class ModelManager {
         id: entry.id,
         name: entry.name ?? entry.id,
         baseUrl: entry.baseUrl ?? "",
+        api: entry.api ?? DEFAULT_CUSTOM_PROVIDER_API,
         models: this._customModelsFor(entry),
       });
     }
@@ -412,6 +440,10 @@ export class ModelManager {
     const base = BUILTIN_PROVIDERS[entry.id];
     return (entry.models ?? []).map((model) => ({
       ...model,
+      api:
+        entry.builtin === true
+          ? model.api
+          : (entry.api ?? DEFAULT_CUSTOM_PROVIDER_API),
       provider: entry.id,
       baseUrl: model.baseUrl ?? base?.baseUrl ?? entry.baseUrl ?? "",
     }));
@@ -434,6 +466,25 @@ export class ModelManager {
         ids.every((id, index) => id === current[index]);
       if (!same) {
         entry.customModels = ids;
+        changed = true;
+      }
+    }
+    return changed;
+  }
+
+  /**
+   * Ensure custom providers have an explicit API mode on disk. Older custom
+   * provider entries did not store this field, but the settings UI should not
+   * show a value that is only implicit.
+   */
+  private _normalizeCustomProviders(): boolean {
+    let changed = false;
+    for (const entry of this._config.providers) {
+      if (entry.builtin === true) {
+        continue;
+      }
+      if (!entry.api) {
+        entry.api = DEFAULT_CUSTOM_PROVIDER_API;
         changed = true;
       }
     }

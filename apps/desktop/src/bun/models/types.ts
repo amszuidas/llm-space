@@ -1,5 +1,13 @@
 import type { CustomModel } from "@llm-space/core";
 
+export type CustomProviderApi =
+  | "anthropic-messages"
+  | "openai-completions"
+  | "openai-responses";
+
+export const DEFAULT_CUSTOM_PROVIDER_API: CustomProviderApi =
+  "openai-completions";
+
 /**
  * A user-defined model added to a provider in `settings/models.json`. The
  * manager fills in the `provider`/`baseUrl` from the owning provider at build
@@ -18,6 +26,8 @@ export interface ProviderConfig {
   apiKey?: string;
   /** Custom base URL override for this provider. Absent means the default. */
   baseUrl?: string;
+  /** API compatibility mode for a custom provider. */
+  api?: CustomProviderApi;
   /**
    * Model ids the user has disabled for this provider. Absent/empty means every
    * model is enabled (the default).

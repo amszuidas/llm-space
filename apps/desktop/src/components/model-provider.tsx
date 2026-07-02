@@ -30,6 +30,11 @@ interface ModelContextValue {
       apiKey?: string | null;
       baseUrl?: string | null;
       name?: string | null;
+      api?:
+        | "anthropic-messages"
+        | "openai-completions"
+        | "openai-responses"
+        | null;
     }
   ) => Promise<void>;
   setModelEnabled: (
@@ -131,6 +136,11 @@ export function ModelProvider({
         apiKey?: string | null;
         baseUrl?: string | null;
         name?: string | null;
+        api?:
+          | "anthropic-messages"
+          | "openai-completions"
+          | "openai-responses"
+          | null;
       }
     ) => {
       if (!electrobun.rpc) {
@@ -311,6 +321,11 @@ export function useUpdateProvider(): (
     apiKey?: string | null;
     baseUrl?: string | null;
     name?: string | null;
+    api?:
+      | "anthropic-messages"
+      | "openai-completions"
+      | "openai-responses"
+      | null;
   }
 ) => Promise<void> {
   return useModelProvider().updateProvider;

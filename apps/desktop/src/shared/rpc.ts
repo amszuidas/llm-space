@@ -49,7 +49,15 @@ export interface DesktopRPCType {
         response: ModelProviderGroup[];
       };
       addCustomProvider: {
-        params: { id: string; name: string; baseUrl: string };
+        params: {
+          id: string;
+          name: string;
+          baseUrl: string;
+          api?:
+            | "anthropic-messages"
+            | "openai-completions"
+            | "openai-responses";
+        };
         response: ModelProviderGroup[];
       };
       updateProvider: {
@@ -58,6 +66,11 @@ export interface DesktopRPCType {
           apiKey?: string | null;
           baseUrl?: string | null;
           name?: string | null;
+          api?:
+            | "anthropic-messages"
+            | "openai-completions"
+            | "openai-responses"
+            | null;
         };
         response: ModelProviderGroup[];
       };
