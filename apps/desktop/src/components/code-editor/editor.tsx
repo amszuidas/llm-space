@@ -34,6 +34,21 @@ export interface CodeEditorHandle {
   getValue: () => string;
 }
 
+export interface CodeEditorProps {
+  className?: string;
+  autoFocus?: boolean;
+  placeholder?: string;
+  hideBorder?: boolean;
+  hideFocusRing?: boolean;
+  language?: "markdown" | "json";
+  streaming?: boolean;
+  value: string;
+  readonly?: boolean;
+  onChange?: (value: string) => void;
+  onKeyDown?: (e: KeyboardEvent) => void;
+  onPaste?: (e: ClipboardEvent) => void;
+}
+
 function _CodeEditor(
   {
     className,
@@ -48,23 +63,7 @@ function _CodeEditor(
     onChange,
     onKeyDown,
     onPaste,
-  }: {
-    className?: string;
-    autoFocus?: boolean;
-    placeholder?: string;
-    hideBorder?: boolean;
-    hideFocusRing?: boolean;
-    language?: "markdown" | "json";
-    streaming?: boolean;
-    value: string;
-    readonly?: boolean;
-
-    onChange?: (value: string) => void;
-
-    onKeyDown?: (e: KeyboardEvent) => void;
-
-    onPaste?: (e: ClipboardEvent) => void;
-  },
+  }: CodeEditorProps,
   ref: React.ForwardedRef<CodeEditorHandle>
 ) {
   const { resolvedTheme } = useTheme();

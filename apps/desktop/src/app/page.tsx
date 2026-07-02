@@ -1,12 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { usePanelRef } from "react-resizable-panels";
 
 import { CommandProvider, useCommands, useRegisterCommands } from "@/commands";
-import { CommandPalette } from "@/components/command-palette";
 import { FileSystemTreeView } from "@/components/file-system-tree-view";
 import { useModels } from "@/components/model-provider";
-import { OnboardDialog } from "@/components/onboard-dialog";
-import { SettingsDialog } from "@/components/settings/settings-dialog";
 import { ThreadTabs, useThreadTabs } from "@/components/thread-tabs";
 import {
   ResizableHandle,
@@ -17,6 +15,46 @@ import { Welcome } from "@/components/welcome";
 import { electrobun } from "@/lib/electrobun";
 import { useFullScreen } from "@/lib/use-full-screen";
 import type { SettingsTab } from "@/shared/commands";
+
+// Overlay surfaces that aren't part of the first paint — settings, the command
+// palette, onboarding. Loaded lazily so their code (and heavy deps like the
+// color picker and cmdk) stays out of the initial chunk until first opened.
+const SettingsDialog = lazy(() =>
+  import("@/components/settings/settings-dialog").then((m) => ({
+    default: m.SettingsDialog,
+  }))
+);
+const CommandPalette = lazy(() =>
+  import("@/components/command-palette").then((m) => ({
+    default: m.CommandPalette,
+  }))
+);
+const OnboardDialog = lazy(() =>
+  import("@/components/onboard-dialog").then((m) => ({
+    default: m.OnboardDialog,
+  }))
+);
+
+/**
+ * Renders a lazily-loaded overlay only once `open` first becomes true, then
+ * keeps it mounted. Deferring the initial mount keeps the overlay's chunk out of
+ * first paint; latching it mounted afterwards means its close animation and
+ * subsequent opens are instant. The latch is a render-time ref (not an effect)
+ * so the lazy `import()` starts in the same render that opens the overlay,
+ * without a wasted extra render of the page tree.
+ */
+function LazyOverlay({
+  open,
+  children,
+}: {
+  open: boolean;
+  children: ReactNode;
+}) {
+  const mounted = useRef(false);
+  if (open) mounted.current = true;
+  if (!mounted.current) return null;
+  return <Suspense fallback={null}>{children}</Suspense>;
+}
 
 export function Page() {
   return (
@@ -173,18 +211,24 @@ function PageInner() {
           </ResizablePanel>
         </ResizablePanelGroup>
       </main>
-      <SettingsDialog
-        tab={settingsTab}
-        open={settingsOpen}
-        onOpenChange={setSettingsOpen}
-        onTabChange={setSettingsTab}
-      />
-      <CommandPalette
-        open={commandPaletteOpen}
-        onOpenChange={setCommandPaletteOpen}
-        blacklist={COMMAND_PALETTE_BLACKLIST}
-      />
-      <OnboardDialog open={onboardOpen} onOpenChange={setOnboardOpen} />
+      <LazyOverlay open={settingsOpen}>
+        <SettingsDialog
+          tab={settingsTab}
+          open={settingsOpen}
+          onOpenChange={setSettingsOpen}
+          onTabChange={setSettingsTab}
+        />
+      </LazyOverlay>
+      <LazyOverlay open={commandPaletteOpen}>
+        <CommandPalette
+          open={commandPaletteOpen}
+          onOpenChange={setCommandPaletteOpen}
+          blacklist={COMMAND_PALETTE_BLACKLIST}
+        />
+      </LazyOverlay>
+      <LazyOverlay open={onboardOpen}>
+        <OnboardDialog open={onboardOpen} onOpenChange={setOnboardOpen} />
+      </LazyOverlay>
     </div>
   );
 }
