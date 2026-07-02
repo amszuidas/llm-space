@@ -24,10 +24,12 @@ import { useShallow } from "zustand/shallow";
 
 import {
   createInitialHistory,
+  normalizeRunHistory,
   recordRun,
   recordSnapshot,
   redo as redoHistory,
   undo as undoHistory,
+  withRunHistory,
   type ChangeHistory,
   type RunSnapshot,
 } from "./thread-history";
@@ -88,6 +90,12 @@ export function createThreadStore(
     getFallbackModel?: () => ModelConfig | null;
   } = {}
 ): ThreadStore {
+  const initialRunHistory = normalizeRunHistory(initialThread.runHistory);
+  const normalizedInitialThread = withRunHistory(
+    initialThread,
+    initialRunHistory
+  );
+
   return createStore<ThreadState>()(
     subscribeWithSelector((set, get) => {
       // --- internal helpers ---------------------------------------------------
@@ -175,13 +183,13 @@ export function createThreadStore(
       // --- store --------------------------------------------------------------
 
       return {
-        thread: initialThread,
+        thread: normalizedInitialThread,
         streamingMessage: null,
         status: "idle",
         abortController: null,
         collapsedMessageIds: [],
-        changeHistory: createInitialHistory(initialThread),
-        runHistory: [],
+        changeHistory: createInitialHistory(normalizedInitialThread),
+        runHistory: initialRunHistory,
 
         appendMessage() {
           const message = createUserMessage();
@@ -500,9 +508,16 @@ export function createThreadStore(
             // undo step, and record a run snapshot. No-op for undo if the
             // thread is unchanged.
             const finalThread = get().thread;
+            const runHistory = recordRun(
+              get().runHistory,
+              finalThread,
+              Date.now()
+            );
+            const thread = withRunHistory(finalThread, runHistory);
             set({
-              changeHistory: recordSnapshot(get().changeHistory, finalThread),
-              runHistory: recordRun(get().runHistory, finalThread, Date.now()),
+              thread,
+              changeHistory: recordSnapshot(get().changeHistory, thread),
+              runHistory,
             });
           }
         },
@@ -514,7 +529,16 @@ export function createThreadStore(
           if (!result) {
             return;
           }
-          set({ thread: result.thread, changeHistory: result.history });
+          const thread = withRunHistory(result.thread, get().runHistory);
+          set({
+            thread,
+            changeHistory: {
+              ...result.history,
+              snapshots: result.history.snapshots.map((snapshot, index) =>
+                index === result.history.index ? thread : snapshot
+              ),
+            },
+          });
         },
         redo() {
           if (get().status === "running") {
@@ -524,19 +548,29 @@ export function createThreadStore(
           if (!result) {
             return;
           }
-          set({ thread: result.thread, changeHistory: result.history });
+          const thread = withRunHistory(result.thread, get().runHistory);
+          set({
+            thread,
+            changeHistory: {
+              ...result.history,
+              snapshots: result.history.snapshots.map((snapshot, index) =>
+                index === result.history.index ? thread : snapshot
+              ),
+            },
+          });
         },
         restoreThread(thread: Thread) {
           if (get().status === "running") {
             return;
           }
-          if (thread === get().thread) {
+          const next = withRunHistory(thread, get().runHistory);
+          if (next === get().thread) {
             return;
           }
           // Replace the whole thread; recorded as a single undoable step.
           set({
-            thread,
-            changeHistory: recordSnapshot(get().changeHistory, thread),
+            thread: next,
+            changeHistory: recordSnapshot(get().changeHistory, next),
           });
         },
         abort() {

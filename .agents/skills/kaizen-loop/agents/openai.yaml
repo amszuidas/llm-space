@@ -1,4 +1,4 @@
 interface:
   display_name: "Kaizen Loop"
-  short_description: "Ship one measured project improvement"
-  default_prompt: "Use $kaizen-loop to find, complete, verify, and log one scoped improvement with a north-star metric."
+  short_description: "Plan the next product capability"
+  default_prompt: "Use $kaizen-loop to inspect the product, recommend one v1 capability with alternatives, and plan it around a product north-star metric."

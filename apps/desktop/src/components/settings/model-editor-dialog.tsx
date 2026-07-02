@@ -1,6 +1,5 @@
 "use client";
 
-import type { Api } from "@earendil-works/pi-ai";
 import type { CustomModel } from "@llm-space/core";
 import { useEffect, useState } from "react";
 
@@ -26,14 +25,19 @@ import { Switch } from "@/components/ui/switch";
 import { useUpdateProvider, useUpsertCustomModel } from "../model-provider";
 import { ModelAvatar } from "../thread-playground/model-avatar";
 
+type CustomProviderApi =
+  | "anthropic-messages"
+  | "openai-completions"
+  | "openai-responses";
+
 /** The selectable API types, ordered alphabetically by label. */
-const API_TYPES: { value: Api; label: string }[] = [
+const API_TYPES: { value: CustomProviderApi; label: string }[] = [
   { value: "anthropic-messages", label: "Anthropic Messages" },
   { value: "openai-completions", label: "OpenAI Completion" },
   { value: "openai-responses", label: "OpenAI Responses" },
 ];
 
-const DEFAULT_API: Api = "openai-completions";
+const DEFAULT_API: CustomProviderApi = "openai-completions";
 const DEFAULT_CONTEXT_WINDOW = 262144;
 const DEFAULT_MAX_TOKENS = 262144;
 
@@ -41,7 +45,7 @@ interface FormState {
   id: string;
   name: string;
   icon: string;
-  api: Api;
+  api: CustomProviderApi;
   reasoning: boolean;
   deepseekThinking: boolean;
   image: boolean;
@@ -51,7 +55,7 @@ interface FormState {
 
 function initialState(
   model: CustomModel | null | undefined,
-  api: Api = DEFAULT_API
+  api: CustomProviderApi = DEFAULT_API
 ): FormState {
   if (!model) {
     return {
@@ -70,7 +74,7 @@ function initialState(
     id: model.id,
     name: model.name,
     icon: model.icon ?? "",
-    api: model.api,
+    api: _customProviderApi(model.api) ?? api,
     reasoning: model.reasoning,
     deepseekThinking:
       (model.compat as { thinkingFormat?: string } | undefined)
@@ -97,7 +101,7 @@ export function ModelEditorDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   providerId: string;
-  providerApi?: Api;
+  providerApi?: CustomProviderApi;
   model?: CustomModel | null;
 }) {
   const updateProvider = useUpdateProvider();
@@ -228,7 +232,10 @@ export function ModelEditorDialog({
             <Select
               value={form.api}
               onValueChange={(value) =>
-                setForm((prev) => ({ ...prev, api: value }))
+                setForm((prev) => ({
+                  ...prev,
+                  api: value as CustomProviderApi,
+                }))
               }
             >
               <SelectTrigger className="w-full">
@@ -312,6 +319,12 @@ export function ModelEditorDialog({
       </DialogContent>
     </Dialog>
   );
+}
+
+function _customProviderApi(api: string): CustomProviderApi | null {
+  return API_TYPES.some((type) => type.value === api)
+    ? (api as CustomProviderApi)
+    : null;
 }
 
 function Field({

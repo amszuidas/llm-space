@@ -25,10 +25,7 @@ export const ThreadContext = Type.Object({
 });
 export type ThreadContext = Static<typeof ThreadContext>;
 
-/**
- * The definition of a thread.
- */
-export const Thread = Type.Object({
+const THREAD_FIELDS = {
   /**
    * The title of the thread.
    */
@@ -45,5 +42,41 @@ export const Thread = Type.Object({
    * The context of the thread, including the system prompt, messages, and tools.
    */
   context: Type.Optional(ThreadContext),
+};
+
+/**
+ * A completed-run snapshot of a thread. It intentionally excludes `runHistory`
+ * so persisted run history cannot recursively contain itself.
+ */
+export const ThreadSnapshot = Type.Object(THREAD_FIELDS);
+export type ThreadSnapshot = Static<typeof ThreadSnapshot>;
+
+/**
+ * A completed run in a thread's durable debug timeline.
+ */
+export const ThreadRunSnapshot = Type.Object({
+  /**
+   * Thread state captured when the run completed.
+   */
+  thread: ThreadSnapshot,
+
+  /**
+   * Epoch milliseconds (`Date.now()`) when the run completed.
+   */
+  timestamp: Type.Number(),
+});
+export type ThreadRunSnapshot = Static<typeof ThreadRunSnapshot>;
+
+/**
+ * The definition of a thread.
+ */
+export const Thread = Type.Object({
+  ...THREAD_FIELDS,
+
+  /**
+   * Recent completed runs for debugging and replay. Entries are bounded by the
+   * desktop store and store de-nested thread snapshots.
+   */
+  runHistory: Type.Optional(Type.Array(ThreadRunSnapshot)),
 });
 export type Thread = Static<typeof Thread>;

@@ -10,12 +10,13 @@ export default function extractInitials(name: string): string {
   const number = /\d+(?:\.\d+)?/.exec(name);
   if (number) return number[0];
 
-  const words = name.trim().split(/\s+/);
+  const words = name.trim().split(/\s+/).filter(Boolean);
   if (words.length >= 2) {
-    return (words[0][0] + words[1][0]).toUpperCase();
+    return (words[0]![0]! + words[1]![0]!).toUpperCase();
   }
 
-  const capitals = words[0].match(/[A-Z]/g);
+  const firstWord = words[0] ?? "";
+  const capitals = firstWord.match(/[A-Z]/g);
   if (capitals && capitals.length >= 2) {
     return capitals.slice(0, 2).join("");
   }

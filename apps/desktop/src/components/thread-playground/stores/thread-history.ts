@@ -1,4 +1,8 @@
-import type { Thread } from "@llm-space/core";
+import type {
+  Thread,
+  ThreadRunSnapshot,
+  ThreadSnapshot,
+} from "@llm-space/core";
 
 /** Maximum number of snapshots retained, including the current state. */
 export const MAX_HISTORY = 100;
@@ -130,11 +134,66 @@ export function recordSnapshot(
   return { snapshots, index: snapshots.length - 1 };
 }
 
-/** A snapshot of the thread captured when a run completed. */
-export interface RunSnapshot {
-  thread: Thread;
-  /** Epoch milliseconds (`Date.now()`) when the run completed. */
-  timestamp: number;
+export type RunSnapshot = ThreadRunSnapshot;
+
+/**
+ * Create a de-nested thread snapshot for durable run history. The returned
+ * object intentionally drops `runHistory`, otherwise each completed run would
+ * persist the entire previous timeline inside the new entry.
+ */
+export function snapshotThread(thread: Thread): ThreadSnapshot {
+  const snapshot: ThreadSnapshot = {};
+  if (thread.title !== undefined) {
+    snapshot.title = thread.title;
+  }
+  if (thread.model !== undefined) {
+    snapshot.model = thread.model;
+  }
+  if (thread.context !== undefined) {
+    snapshot.context = thread.context;
+  }
+  return snapshot;
+}
+
+/**
+ * Normalize persisted run history read from a thread file, trimming malformed
+ * timestamps and enforcing the same recent-run cap used for newly recorded runs.
+ */
+export function normalizeRunHistory(
+  runHistory: Thread["runHistory"]
+): RunSnapshot[] {
+  if (!Array.isArray(runHistory)) {
+    return [];
+  }
+  const normalized = runHistory.flatMap((run): RunSnapshot[] => {
+    if (!Number.isFinite(run.timestamp)) {
+      return [];
+    }
+    return [
+      {
+        timestamp: run.timestamp,
+        thread: snapshotThread(run.thread),
+      },
+    ];
+  });
+  return normalized.length > MAX_RUN_HISTORY
+    ? normalized.slice(normalized.length - MAX_RUN_HISTORY)
+    : normalized;
+}
+
+/**
+ * Attach a durable run history to a thread while omitting the field when it is
+ * empty. This keeps old thread files tidy until the user actually records runs.
+ */
+export function withRunHistory(
+  thread: Thread,
+  runHistory: RunSnapshot[]
+): Thread {
+  const normalized = normalizeRunHistory(runHistory);
+  if (normalized.length === 0) {
+    return snapshotThread(thread);
+  }
+  return { ...thread, runHistory: normalized };
 }
 
 /**
@@ -147,7 +206,10 @@ export function recordRun(
   thread: Thread,
   timestamp: number
 ): RunSnapshot[] {
-  const next = [...runHistory, { thread, timestamp }];
+  const next = [
+    ...normalizeRunHistory(runHistory),
+    { thread: snapshotThread(thread), timestamp },
+  ];
   return next.length > MAX_RUN_HISTORY
     ? next.slice(next.length - MAX_RUN_HISTORY)
     : next;

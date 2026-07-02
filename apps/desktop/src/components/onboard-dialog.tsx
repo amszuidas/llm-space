@@ -49,11 +49,12 @@ export function OnboardDialog({
             alt="Onboard"
             className="w-full rounded-lg"
           />
-          <DialogClose className="absolute top-2 right-2">
+          <DialogClose asChild>
             <Button
-              className="bg-muted/75 hover:bg-muted/85! text-foreground/80 rounded-full"
+              className="bg-muted/75 hover:bg-muted/85! text-foreground/80 absolute top-2 right-2 rounded-full"
               variant="ghost"
               size="icon-sm"
+              aria-label="Close onboarding"
             >
               <XIcon className="size-3" />
             </Button>
@@ -70,7 +71,7 @@ export function OnboardDialog({
                 Configure models
               </Button>
             ) : (
-              <DialogClose>
+              <DialogClose asChild>
                 <RainbowButton
                   variant="outline"
                   className="dark:bg-[red]!"

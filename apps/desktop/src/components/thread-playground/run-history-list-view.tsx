@@ -1,4 +1,4 @@
-import type { Thread } from "@llm-space/core";
+import type { ThreadSnapshot } from "@llm-space/core";
 import { XIcon } from "lucide-react";
 import { memo, useMemo } from "react";
 import { format } from "timeago.js";
@@ -12,7 +12,7 @@ import { Item, ItemContent, ItemDescription, ItemGroup } from "../ui/item";
 import { useThreadStore, useThreadStoreActions } from "./stores";
 
 /** A short summary of a run's resulting thread, derived from its last message. */
-function _summarizeRun(thread: Thread): string {
+function _summarizeRun(thread: ThreadSnapshot): string {
   const messages = thread.context?.messages ?? [];
   const last = messages[messages.length - 1];
   if (!last) {
@@ -32,6 +32,19 @@ function _summarizeRun(thread: Thread): string {
     .join(" ")
     .trim();
   return text || "Empty message";
+}
+
+/** The model label for a run snapshot, separated so it can truncate safely. */
+function _runModelLabel(thread: ThreadSnapshot): string {
+  return thread.model
+    ? `${thread.model.provider}/${thread.model.id}`
+    : "No model";
+}
+
+/** The message count label for a run snapshot, kept visible in narrow panels. */
+function _runMessageCountLabel(thread: ThreadSnapshot): string {
+  const messageCount = thread.context?.messages?.length ?? 0;
+  return `${messageCount} message${messageCount === 1 ? "" : "s"}`;
 }
 
 function _RunHistoryListView({ onClose }: { onClose: () => void }) {
@@ -66,14 +79,17 @@ function _RunHistoryListView({ onClose }: { onClose: () => void }) {
         ) : (
           runs.map((run, index) => {
             const summary = _summarizeRun(run.thread);
+            const modelLabel = _runModelLabel(run.thread);
+            const messageCountLabel = _runMessageCountLabel(run.thread);
+            const time = format(run.timestamp);
             return (
               <Item
-                key={run.timestamp}
+                key={`${run.timestamp}-${index}`}
                 size="sm"
                 variant="muted"
                 role="button"
                 tabIndex={0}
-                aria-label={`Restore run: ${summary}`}
+                aria-label={`Restore run from ${time}: ${summary}. ${modelLabel}. ${messageCountLabel}`}
                 className={cn(
                   "hover:bg-foreground/8! group cursor-pointer flex-col items-start gap-1",
                   // Flash the newest run's background, fading to the resting color.
@@ -94,9 +110,14 @@ function _RunHistoryListView({ onClose }: { onClose: () => void }) {
                     {summary}
                   </ItemDescription>
                 </ItemContent>
-                <span className="text-muted-foreground text-[0.625rem]">
-                  {format(run.timestamp)}
-                </span>
+                <div className="text-muted-foreground flex w-full min-w-0 items-baseline gap-1.5 text-[0.625rem]">
+                  <span className="min-w-0 flex-1 truncate">
+                    {time} · {modelLabel}
+                  </span>
+                  <span className="shrink-0 tabular-nums">
+                    {messageCountLabel}
+                  </span>
+                </div>
               </Item>
             );
           })
