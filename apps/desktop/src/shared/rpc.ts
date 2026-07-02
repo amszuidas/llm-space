@@ -1,6 +1,7 @@
 import type {
   AgentEvent,
   AgentStreamRequest,
+  CustomModel,
   FileNode,
   ModelProviderGroup,
   Thread,
@@ -61,6 +62,20 @@ export interface DesktopRPCType {
       };
       setAllModelsEnabled: {
         params: { providerId: string; enabled: boolean };
+        response: ModelProviderGroup[];
+      };
+      removeCustomModel: {
+        params: { providerId: string; modelId: string };
+        response: ModelProviderGroup[];
+      };
+      // Create or edit a custom model. `originalId` (present on edits) names the
+      // model being replaced, supporting a rename.
+      upsertCustomModel: {
+        params: {
+          providerId: string;
+          model: CustomModel;
+          originalId?: string;
+        };
         response: ModelProviderGroup[];
       };
       toggleMaximized: {

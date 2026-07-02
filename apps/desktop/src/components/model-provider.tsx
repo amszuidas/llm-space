@@ -1,7 +1,11 @@
 "use client";
 
 import type * as pi from "@earendil-works/pi-ai";
-import type { ModelConfig, ModelProviderGroup } from "@llm-space/core";
+import type {
+  CustomModel,
+  ModelConfig,
+  ModelProviderGroup,
+} from "@llm-space/core";
 import {
   createContext,
   useCallback,
@@ -30,6 +34,12 @@ interface ModelContextValue {
   setAllModelsEnabled: (
     providerId: string,
     enabled: boolean
+  ) => Promise<void>;
+  removeCustomModel: (providerId: string, modelId: string) => Promise<void>;
+  upsertCustomModel: (
+    providerId: string,
+    model: CustomModel,
+    originalId?: string
   ) => Promise<void>;
   refresh: () => Promise<void>;
   getModel: (ref: { id: string; provider: string }) => pi.Model<pi.Api> | null;
@@ -140,6 +150,35 @@ export function ModelProvider({
     []
   );
 
+  const removeCustomModel = useCallback(
+    async (providerId: string, modelId: string) => {
+      if (!electrobun.rpc) {
+        throw new Error("Electrobun RPC is not initialized");
+      }
+      const updated = await electrobun.rpc.request.removeCustomModel({
+        providerId,
+        modelId,
+      });
+      setProviders(updated);
+    },
+    []
+  );
+
+  const upsertCustomModel = useCallback(
+    async (providerId: string, model: CustomModel, originalId?: string) => {
+      if (!electrobun.rpc) {
+        throw new Error("Electrobun RPC is not initialized");
+      }
+      const updated = await electrobun.rpc.request.upsertCustomModel({
+        providerId,
+        model,
+        originalId,
+      });
+      setProviders(updated);
+    },
+    []
+  );
+
   // Re-fetch the providers from the main process. Callers invoke this to force a
   // fresh read (e.g. every time the model dropdown opens) — the result is never
   // cached beyond the current render.
@@ -167,6 +206,8 @@ export function ModelProvider({
       updateProvider,
       setModelEnabled,
       setAllModelsEnabled,
+      removeCustomModel,
+      upsertCustomModel,
       refresh,
       getModel: (ref) => index.get(`${ref.provider}:${ref.id}`) ?? null,
     };
@@ -177,6 +218,8 @@ export function ModelProvider({
     updateProvider,
     setModelEnabled,
     setAllModelsEnabled,
+    removeCustomModel,
+    upsertCustomModel,
     refresh,
   ]);
 
@@ -247,6 +290,21 @@ export function useSetAllModelsEnabled(): (
   enabled: boolean
 ) => Promise<void> {
   return useModelProvider().setAllModelsEnabled;
+}
+
+export function useRemoveCustomModel(): (
+  providerId: string,
+  modelId: string
+) => Promise<void> {
+  return useModelProvider().removeCustomModel;
+}
+
+export function useUpsertCustomModel(): (
+  providerId: string,
+  model: CustomModel,
+  originalId?: string
+) => Promise<void> {
+  return useModelProvider().upsertCustomModel;
 }
 
 export function useRefreshModels(): () => Promise<void> {

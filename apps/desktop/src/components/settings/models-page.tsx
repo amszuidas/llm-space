@@ -1,6 +1,6 @@
 "use client";
 
-import type { ModelProviderGroup } from "@llm-space/core";
+import type { CustomModel, ModelProviderGroup } from "@llm-space/core";
 import {
   Ban,
   Check,
@@ -9,6 +9,7 @@ import {
   Eye,
   EyeOff,
   MoreHorizontal,
+  Pencil,
   Plus,
   Search,
   Trash2,
@@ -42,6 +43,7 @@ import {
   useAddProvider,
   useFetchBuiltinProviders,
   useModels,
+  useRemoveCustomModel,
   useRemoveProvider,
   useSetAllModelsEnabled,
   useSetModelEnabled,
@@ -52,6 +54,7 @@ import { ProviderAvatar } from "../thread-playground/provider-avatar";
 import { Tooltip } from "../tooltip";
 import { ScrollArea } from "../ui/scroll-area";
 
+import { ModelEditorDialog } from "./model-editor-dialog";
 import { SettingsPage } from "./settings-page";
 
 export function ModelsPage() {
@@ -377,9 +380,27 @@ function ProviderEditor({ provider }: { provider: ModelProviderGroup | null }) {
     "all"
   );
   const [modelListRef] = useAutoAnimation<HTMLDivElement>();
+  const [editorOpen, setEditorOpen] = useState(false);
+  // The custom model being edited, or `null` for a fresh create.
+  const [editingModel, setEditingModel] = useState<CustomModel | null>(null);
+
+  const openCreateModel = () => {
+    setEditingModel(null);
+    setEditorOpen(true);
+  };
+
+  const openEditModel = (model: CustomModel) => {
+    setEditingModel(model);
+    setEditorOpen(true);
+  };
 
   const disabledModels = useMemo(
     () => new Set(provider?.disabledModels ?? []),
+    [provider]
+  );
+
+  const customModels = useMemo(
+    () => new Set(provider?.customModels ?? []),
     [provider]
   );
 
@@ -529,16 +550,27 @@ function ProviderEditor({ provider }: { provider: ModelProviderGroup | null }) {
                   ? totalModels
                   : `${enabledModels}/${totalModels}`}
               </span>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
+              <div className="ml-auto flex items-center gap-1">
+                <Tooltip content="Add custom model">
                   <button
                     type="button"
-                    aria-label={`Model list actions for ${provider.name}`}
-                    className="text-muted-foreground hover:bg-accent hover:text-foreground ml-auto inline-flex size-6 items-center justify-center rounded transition-colors"
+                    aria-label="Add custom model"
+                    onClick={openCreateModel}
+                    className="text-muted-foreground hover:bg-accent hover:text-foreground inline-flex size-6 items-center justify-center rounded transition-colors"
                   >
-                    <MoreHorizontal className="size-4" />
+                    <Plus className="size-4" />
                   </button>
-                </DropdownMenuTrigger>
+                </Tooltip>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      aria-label={`Model list actions for ${provider.name}`}
+                      className="text-muted-foreground hover:bg-accent hover:text-foreground inline-flex size-6 items-center justify-center rounded transition-colors"
+                    >
+                      <MoreHorizontal className="size-4" />
+                    </button>
+                  </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-44">
                   <DropdownMenuItem
                     onSelect={() =>
@@ -575,8 +607,9 @@ function ProviderEditor({ provider }: { provider: ModelProviderGroup | null }) {
                       {label}
                     </DropdownMenuItem>
                   ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
             <div ref={modelListRef} className="flex flex-col gap-1.5">
               {visibleModels.length === 0 ? (
@@ -584,40 +617,110 @@ function ProviderEditor({ provider }: { provider: ModelProviderGroup | null }) {
                   No models to show.
                 </div>
               ) : (
-                visibleModels.map((model) => {
-                  const enabled = !disabledModels.has(model.id);
-                  return (
-                    <Item key={model.id} variant="muted" size="sm">
-                      <ItemMedia>
-                        <ModelAvatar id={model.id} name={model.name} />
-                      </ItemMedia>
-                      <ItemContent className={cn(!enabled && "opacity-50")}>
-                        <ItemTitle className="font-mono">
-                          {model.name}
-                        </ItemTitle>
-                      </ItemContent>
-                      <ItemActions>
-                        <Switch
-                          size="sm"
-                          checked={enabled}
-                          onCheckedChange={(next) =>
-                            void setModelEnabled(provider.id, model.id, next)
-                          }
-                          aria-label={
-                            enabled
-                              ? `Disable ${model.name}`
-                              : `Enable ${model.name}`
-                          }
-                        />
-                      </ItemActions>
-                    </Item>
-                  );
-                })
+                visibleModels.map((model) => (
+                  <ModelListItem
+                    key={model.id}
+                    providerId={provider.id}
+                    providerName={provider.name}
+                    model={model}
+                    enabled={!disabledModels.has(model.id)}
+                    isCustom={customModels.has(model.id)}
+                    onToggle={(next) =>
+                      void setModelEnabled(provider.id, model.id, next)
+                    }
+                    onEdit={() => openEditModel(model)}
+                  />
+                ))
               )}
             </div>
           </div>
         </div>
       </ScrollArea>
+
+      <ModelEditorDialog
+        open={editorOpen}
+        onOpenChange={setEditorOpen}
+        providerId={provider.id}
+        model={editingModel}
+      />
     </div>
+  );
+}
+
+/**
+ * A single model row. Custom (user-added) models get a hover-revealed action
+ * cluster — edit and delete — to the left of the enable switch. Delete is gated
+ * behind a confirmation.
+ */
+function ModelListItem({
+  providerId,
+  providerName,
+  model,
+  enabled,
+  isCustom,
+  onToggle,
+  onEdit,
+}: {
+  providerId: string;
+  providerName: string;
+  model: ModelProviderGroup["models"][number];
+  enabled: boolean;
+  isCustom: boolean;
+  onToggle: (enabled: boolean) => void;
+  onEdit: () => void;
+}) {
+  const removeCustomModel = useRemoveCustomModel();
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  return (
+    <Item variant="muted" size="sm" className="group">
+      <ItemMedia>
+        <ModelAvatar id={model.id} name={model.name} />
+      </ItemMedia>
+      <ItemContent className={cn(!enabled && "opacity-50")}>
+        <ItemTitle className="font-mono">{model.name}</ItemTitle>
+      </ItemContent>
+      <ItemActions>
+        {isCustom && (
+          <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+            <button
+              type="button"
+              aria-label={`Edit ${model.name}`}
+              onClick={onEdit}
+              className="text-muted-foreground hover:bg-accent hover:text-foreground inline-flex size-6 items-center justify-center rounded transition-colors"
+            >
+              <Pencil className="size-3.5" />
+            </button>
+            <button
+              type="button"
+              aria-label={`Delete ${model.name}`}
+              onClick={() => setConfirmOpen(true)}
+              className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive inline-flex size-6 items-center justify-center rounded transition-colors"
+            >
+              <Trash2 className="size-3.5" />
+            </button>
+          </div>
+        )}
+        <Switch
+          size="sm"
+          checked={enabled}
+          onCheckedChange={onToggle}
+          aria-label={enabled ? `Disable ${model.name}` : `Enable ${model.name}`}
+        />
+      </ItemActions>
+      {isCustom && (
+        <ConfirmDialog
+          open={confirmOpen}
+          onOpenChange={setConfirmOpen}
+          title={`Delete ${model.name}?`}
+          description={`This permanently removes the custom model "${model.name}" from ${providerName}.`}
+          confirmLabel="Delete"
+          onConfirm={() => {
+            setConfirmOpen(false);
+            void removeCustomModel(providerId, model.id);
+          }}
+        />
+      )}
+    </Item>
   );
 }

@@ -10,6 +10,8 @@ export interface ModelProviderGroup {
   baseUrl?: string;
   /** Model ids the user has disabled. Everything not listed is enabled. */
   disabledModels?: string[];
+  /** Ids of the user-added custom models within this provider. */
+  customModels?: string[];
   websiteLink?: string;
   websiteURL?: string;
   apiKeyURL?: string;

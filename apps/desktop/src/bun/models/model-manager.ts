@@ -5,6 +5,8 @@ import { env } from "node:process";
 
 import {
   createModels,
+  type Api,
+  type Model,
   type Models,
   type Provider,
 } from "@earendil-works/pi-ai";
@@ -15,7 +17,7 @@ import {
   BUILTIN_PROVIDER_META,
   BUILTIN_PROVIDERS,
 } from "./providers/builtin-providers";
-import type { ModelsConfig } from "./types";
+import type { CustomModelConfig, ModelsConfig, ProviderConfig } from "./types";
 
 /**
  * Owns `settings/models.json`: the single in-memory source of truth for the
@@ -34,6 +36,11 @@ export class ModelManager {
 
   constructor() {
     this._config = this._loadConfig();
+    // Keep each provider's `customModels` in sync with its `models` list so the
+    // renderer always sees which models are user-added, then persist any change.
+    if (this._normalizeCustomModels()) {
+      this._saveConfig();
+    }
   }
 
   /** The `Models` registry of configured providers. Built once, then cached. */
@@ -119,6 +126,14 @@ export class ModelManager {
     );
   }
 
+  /** The ids of the user-added models for a provider (empty by default). */
+  getCustomModels(providerId: string): string[] {
+    return (
+      this._config.providers.find((entry) => entry.id === providerId)
+        ?.customModels ?? []
+    );
+  }
+
   /**
    * Enable or disable a single model within a provider. Disabling records the
    * model id in the provider's `disabledModels`; enabling removes it. Model
@@ -173,6 +188,71 @@ export class ModelManager {
     this._saveConfig();
   }
 
+  /**
+   * Add or update a user-added custom model on a provider. When `originalId` is
+   * given (an edit) the model it names is replaced — supporting a rename — and
+   * any `disabledModels` reference is carried over to the new id. Stored without
+   * `provider`/`baseUrl`; those are filled in at build time. Throws when the
+   * provider is not configured.
+   */
+  upsertCustomModel(
+    providerId: string,
+    model: CustomModelConfig,
+    originalId?: string
+  ): void {
+    const entry = this._config.providers.find(
+      (provider) => provider.id === providerId
+    );
+    if (!entry) {
+      throw new Error(`Provider not configured: ${providerId}`);
+    }
+    const removeId = originalId ?? model.id;
+    const models = (entry.models ?? []).filter(
+      (existing) => existing.id !== removeId
+    );
+    models.push(model);
+    entry.models = models;
+    entry.customModels = models.map((existing) => existing.id);
+    if (originalId && originalId !== model.id && entry.disabledModels) {
+      entry.disabledModels = entry.disabledModels.map((id) =>
+        id === originalId ? model.id : id
+      );
+    }
+    this._models = null;
+    this._saveConfig();
+  }
+
+  /**
+   * Remove a user-added custom model from a provider. Drops it from `models`,
+   * `customModels`, and `disabledModels`, then rebuilds the registry so the
+   * model disappears everywhere. Throws when the provider is not configured;
+   * a no-op when the model is not a custom model of that provider.
+   */
+  removeCustomModel(providerId: string, modelId: string): void {
+    const entry = this._config.providers.find(
+      (provider) => provider.id === providerId
+    );
+    if (!entry) {
+      throw new Error(`Provider not configured: ${providerId}`);
+    }
+    if (entry.models) {
+      entry.models = entry.models.filter((model) => model.id !== modelId);
+      if (entry.models.length === 0) delete entry.models;
+    }
+    if (entry.customModels) {
+      entry.customModels = entry.customModels.filter((id) => id !== modelId);
+      if (entry.customModels.length === 0) delete entry.customModels;
+    }
+    if (entry.disabledModels) {
+      entry.disabledModels = entry.disabledModels.filter(
+        (id) => id !== modelId
+      );
+      if (entry.disabledModels.length === 0) delete entry.disabledModels;
+    }
+    this._models = null;
+    this._saveConfig();
+  }
+
   /** Remove a provider from `settings/models.json`. No-op when not configured. */
   removeProvider(providerId: string): void {
     const index = this._config.providers.findIndex(
@@ -222,10 +302,14 @@ export class ModelManager {
     return BUILTIN_PROVIDER_META[providerId]?.websiteLink;
   }
 
-  /** Every model id a builtin provider exposes (empty for unknown providers). */
+  /**
+   * Every model id a provider exposes: its builtin catalog plus any user-added
+   * custom models (empty for unknown providers).
+   */
   private _providerModelIds(providerId: string): string[] {
     const provider = BUILTIN_PROVIDERS[providerId];
-    return provider ? provider.getModels().map((model) => model.id) : [];
+    const builtin = provider ? provider.getModels().map((model) => model.id) : [];
+    return [...builtin, ...this.getCustomModels(providerId)];
   }
 
   /** Assemble the configured providers into a `Models` registry. */
@@ -239,7 +323,8 @@ export class ModelManager {
 
   /**
    * Instantiate the builtin (`builtin: true`) providers named in the config,
-   * deduped and sorted by id.
+   * deduped and sorted by id. Providers carrying user-added `models` are wrapped
+   * so their catalog includes those custom models.
    */
   private _buildProviders(): Provider[] {
     const seen = new Set<string>();
@@ -247,10 +332,64 @@ export class ModelManager {
       .filter(
         (entry) => entry.builtin === true && entry.id in BUILTIN_PROVIDERS
       )
-      .map((entry) => entry.id)
-      .filter((id) => (seen.has(id) ? false : (seen.add(id), true)))
-      .sort((a, b) => a.localeCompare(b))
-      .map((id) => BUILTIN_PROVIDERS[id]);
+      .filter((entry) =>
+        seen.has(entry.id) ? false : (seen.add(entry.id), true)
+      )
+      .sort((a, b) => a.id.localeCompare(b.id))
+      .map((entry) => this._buildProvider(entry));
+  }
+
+  /**
+   * The runtime provider for a config entry: the builtin provider as-is, or —
+   * when the entry defines custom `models` — a wrapper whose `getModels()`
+   * appends those models. The builtin's stream/auth are reused verbatim, so a
+   * custom model must target an API the provider implements.
+   */
+  private _buildProvider(entry: ProviderConfig): Provider {
+    const base = BUILTIN_PROVIDERS[entry.id];
+    const custom = this._customModelsFor(entry);
+    if (custom.length === 0) {
+      return base;
+    }
+    const merged = [...base.getModels(), ...custom];
+    return { ...base, getModels: () => merged };
+  }
+
+  /**
+   * Resolve a provider's user-added models, filling in the `provider` id and a
+   * `baseUrl` (defaulting to the builtin provider's base URL so the model reuses
+   * the same endpoint that `getBaseUrl` overrides at runtime).
+   */
+  private _customModelsFor(entry: ProviderConfig): Model<Api>[] {
+    const base = BUILTIN_PROVIDERS[entry.id];
+    return (entry.models ?? []).map((model) => ({
+      ...model,
+      provider: entry.id,
+      baseUrl: model.baseUrl ?? base?.baseUrl ?? "",
+    }));
+  }
+
+  /**
+   * Ensure every provider's `customModels` mirrors the ids in its `models`
+   * list. Returns whether anything changed so the caller can persist.
+   */
+  private _normalizeCustomModels(): boolean {
+    let changed = false;
+    for (const entry of this._config.providers) {
+      if (!entry.models || entry.models.length === 0) {
+        continue;
+      }
+      const ids = entry.models.map((model) => model.id);
+      const current = entry.customModels ?? [];
+      const same =
+        ids.length === current.length &&
+        ids.every((id, index) => id === current[index]);
+      if (!same) {
+        entry.customModels = ids;
+        changed = true;
+      }
+    }
+    return changed;
   }
 
   private get _configPath(): string {
