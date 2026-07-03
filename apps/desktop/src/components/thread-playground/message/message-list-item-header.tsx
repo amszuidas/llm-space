@@ -81,7 +81,6 @@ function _MessageListItemHeader({
             "text-muted-foreground hover:text-foreground hover:bg-foreground/8 absolute top-0.5 left-1/2 z-20 flex h-4 w-9 -translate-x-1/2 cursor-grab items-center justify-center rounded-md opacity-0 transition-opacity group-hover:opacity-70 active:cursor-grabbing",
             // Hidden while collapsed: the row shows a content preview instead,
             // and the centered handle would sit on top of it.
-            collapsed && "hidden",
             readonly && "invisible"
           )}
         >
