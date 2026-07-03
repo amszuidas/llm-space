@@ -81,7 +81,7 @@ The JSON must include:
     "properties": {
       "description": {
         "type": "string",
-        "description": "Explain to user why you need to perform this action"
+        "description": "Must be the first parameter in the tool call. Explain to user why you need to perform this action"
       },
       "path": {
         "type": "string",
