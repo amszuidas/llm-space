@@ -28,6 +28,7 @@ import compactMemoryPrompt from "../prompts/examples/compact-memory.md?raw";
 import deepWikiPrompt from "../prompts/examples/deep-wiki.md?raw";
 import generalAgentPrompt from "../prompts/examples/general-agent.md?raw";
 import metaImagePrompt from "../prompts/examples/meta-image-prompt.md?raw";
+import metaPromptWithTools from "../prompts/examples/meta-prompt-with-tools.md?raw";
 import translationPrompt from "../prompts/examples/translation.md?raw";
 import metaPrompt from "../prompts/meta-prompt.md?raw";
 import metaToolPrompt from "../prompts/meta-tool.md?raw";
@@ -63,7 +64,7 @@ const PROMPT_EXAMPLES = [
   {
     type: "example",
     label: "Meta Prompt",
-    content: metaPrompt,
+    content: metaPromptWithTools,
     icon: SparklesIcon,
   },
   {
