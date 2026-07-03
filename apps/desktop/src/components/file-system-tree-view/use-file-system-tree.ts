@@ -296,6 +296,10 @@ export function useFileSystemTree(): FileSystemTree {
         await localFs.rm(path);
       } catch (err) {
         toast.error((err as Error).message);
+        // The delete may still have landed even though it reported failure
+        // (e.g. the RPC timed out while the OS waited on a permission
+        // prompt), so re-fetch rather than leaving a stale entry in the tree.
+        void qc.invalidateQueries({ queryKey: fsKeys.ls(parentOf(path)) });
         return false;
       }
       // Prune the removed subtree from the expanded set.
