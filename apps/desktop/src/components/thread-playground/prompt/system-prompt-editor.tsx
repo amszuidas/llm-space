@@ -1,13 +1,92 @@
 import { uuid, type Message } from "@llm-space/core";
+import {
+  BookOpenTextIcon,
+  BotIcon,
+  BrainCircuitIcon,
+  ChevronDown,
+  ImageIcon,
+  LanguagesIcon,
+  SparklesIcon,
+  WrenchIcon,
+  type LucideIcon,
+} from "lucide-react";
 import { memo, useCallback, useEffect } from "react";
 
 import { cn } from "@/lib/utils";
 
 import { CodeEditor } from "../../code-editor";
+import { Button } from "../../ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "../../ui/dropdown-menu";
 import { GeneratePopoverButton } from "../generate-popover-button";
+import compactMemoryPrompt from "../prompts/examples/compact-memory.md?raw";
+import deepWikiPrompt from "../prompts/examples/deep-wiki.md?raw";
+import generalAgentPrompt from "../prompts/examples/general-agent.md?raw";
+import metaImagePrompt from "../prompts/examples/meta-image-prompt.md?raw";
+import translationPrompt from "../prompts/examples/translation.md?raw";
 import metaPrompt from "../prompts/meta-prompt.md?raw";
+import metaToolPrompt from "../prompts/meta-tool.md?raw";
 import { useThreadStore, useThreadStoreActions } from "../stores";
 import { useStreamText } from "../use-stream-text";
+
+const PROMPT_EXAMPLES = [
+  {
+    type: "example",
+    label: "General Agent",
+    content: generalAgentPrompt,
+    icon: BotIcon,
+  },
+  {
+    type: "example",
+    label: "Translation",
+    content: translationPrompt,
+    icon: LanguagesIcon,
+  },
+  {
+    type: "example",
+    label: "Deep Wiki",
+    content: deepWikiPrompt,
+    icon: BookOpenTextIcon,
+  },
+  {
+    type: "example",
+    label: "Compact Memory",
+    content: compactMemoryPrompt,
+    icon: BrainCircuitIcon,
+  },
+  { type: "separator" },
+  {
+    type: "example",
+    label: "Meta Prompt",
+    content: metaPrompt,
+    icon: SparklesIcon,
+  },
+  {
+    type: "example",
+    label: "Meta Tool",
+    content: metaToolPrompt,
+    icon: WrenchIcon,
+  },
+  {
+    type: "example",
+    label: "Meta Image Prompt",
+    content: metaImagePrompt,
+    icon: ImageIcon,
+  },
+] satisfies readonly (
+  | {
+      type: "example";
+      label: string;
+      content: string;
+      icon: LucideIcon;
+    }
+  | { type: "separator" }
+)[];
 
 function _SystemPromptEditor({
   className,
@@ -49,6 +128,13 @@ function _SystemPromptEditor({
     }
   }, [generated, updateSystemPrompt]);
 
+  const handleExampleSelect = useCallback(
+    (content: string) => {
+      updateSystemPrompt(content);
+    },
+    [updateSystemPrompt]
+  );
+
   const handleGenerate = useCallback(
     (prompt: string) => {
       // Feed the current prompt and tools (if any) as a prior assistant turn,
@@ -87,10 +173,40 @@ function _SystemPromptEditor({
     <div className={cn("flex size-full flex-col", className)}>
       <div className="flex shrink-0 items-center justify-between py-2">
         <div className="text-muted-foreground text-sm">System prompt</div>
-        <GeneratePopoverButton
-          placeholder="Describe the assistant you want (its role, tone, and rules), and we'll generate a system prompt."
-          onGenerate={handleGenerate}
-        />
+        <div className="flex items-center gap-2">
+          <GeneratePopoverButton
+            placeholder="Describe the assistant you want (its role, tone, and rules), and we'll generate a system prompt."
+            onGenerate={handleGenerate}
+          />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm">
+                Examples
+                <ChevronDown data-icon="inline-end" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {PROMPT_EXAMPLES.map((example, index) =>
+                example.type === "separator" ? (
+                  <DropdownMenuSeparator key={`sep-${index}`} />
+                ) : (
+                  (() => {
+                    const Icon = example.icon;
+                    return (
+                      <DropdownMenuItem
+                        key={example.label}
+                        onSelect={() => handleExampleSelect(example.content)}
+                      >
+                        <Icon />
+                        {example.label}
+                      </DropdownMenuItem>
+                    );
+                  })()
+                )
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
       <CodeEditor
         className="hover:border-accent-foreground/20 grow transition-[border-color]"

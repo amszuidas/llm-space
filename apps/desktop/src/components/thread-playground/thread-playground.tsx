@@ -67,7 +67,7 @@ export interface ThreadPlaygroundProps {
  * mounts. The real ThreadPlayground takes roughly this long to render, so the
  * overlay hides that first paint instead of flashing an unfinished UI.
  */
-const SKELETON_OVERLAY_MS = 500;
+const SKELETON_OVERLAY_MS = 0;
 
 export function ThreadPlayground({
   loading,

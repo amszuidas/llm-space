@@ -6,7 +6,22 @@ import {
   type FunctionTool,
   type Message,
 } from "@llm-space/core";
-import { ChevronDown } from "lucide-react";
+import {
+  CloudSunIcon,
+  CodeIcon,
+  Edit3Icon,
+  FileIcon,
+  FileOutputIcon,
+  FileSearchIcon,
+  FileTextIcon,
+  GlobeIcon,
+  ImageIcon,
+  ListTreeIcon,
+  SearchIcon,
+  TerminalIcon,
+  ChevronDown,
+  type LucideIcon,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -339,24 +354,59 @@ const WEB_FETCH_TOOL: FunctionTool = {
 
 type ToolExampleItem =
   | { type: "separator" }
-  | { type: "tool"; label: string; tool: FunctionTool };
+  | { type: "tool"; label: string; tool: FunctionTool; icon: LucideIcon };
 
 const TOOL_EXAMPLES: ToolExampleItem[] = [
-  { type: "tool", label: "get_weather()", tool: DEFAULT_TOOL },
+  {
+    type: "tool",
+    label: "get_weather",
+    tool: DEFAULT_TOOL,
+    icon: CloudSunIcon,
+  },
   { type: "separator" },
-  { type: "tool", label: "web_search()", tool: WEB_SEARCH_TOOL },
-  { type: "tool", label: "web_fetch()", tool: WEB_FETCH_TOOL },
+  {
+    type: "tool",
+    label: "web_search",
+    tool: WEB_SEARCH_TOOL,
+    icon: SearchIcon,
+  },
+  {
+    type: "tool",
+    label: "web_fetch",
+    tool: WEB_FETCH_TOOL,
+    icon: GlobeIcon,
+  },
   { type: "separator" },
-  { type: "tool", label: "bash()", tool: BASH_TOOL },
-  { type: "tool", label: "read_file()", tool: READ_FILE_TOOL },
-  { type: "tool", label: "write_file()", tool: WRITE_FILE_TOOL },
-  { type: "tool", label: "edit()", tool: EDIT_TOOL },
-  { type: "tool", label: "ls()", tool: LS_TOOL },
-  { type: "tool", label: "grep()", tool: GREP_TOOL },
-  { type: "tool", label: "glob()", tool: GLOB_TOOL },
-  { type: "tool", label: "present_files()", tool: PRESENT_FILES_TOOL },
+  { type: "tool", label: "bash()", tool: BASH_TOOL, icon: TerminalIcon },
+  {
+    type: "tool",
+    label: "read_file",
+    tool: READ_FILE_TOOL,
+    icon: FileTextIcon,
+  },
+  {
+    type: "tool",
+    label: "write_file",
+    tool: WRITE_FILE_TOOL,
+    icon: FileOutputIcon,
+  },
+  { type: "tool", label: "edit", tool: EDIT_TOOL, icon: Edit3Icon },
+  { type: "tool", label: "ls", tool: LS_TOOL, icon: ListTreeIcon },
+  { type: "tool", label: "grep", tool: GREP_TOOL, icon: FileSearchIcon },
+  { type: "tool", label: "glob", tool: GLOB_TOOL, icon: CodeIcon },
+  {
+    type: "tool",
+    label: "present_files",
+    tool: PRESENT_FILES_TOOL,
+    icon: FileIcon,
+  },
   { type: "separator" },
-  { type: "tool", label: "generate_image()", tool: GENERATE_IMAGE_TOOL },
+  {
+    type: "tool",
+    label: "generate_image",
+    tool: GENERATE_IMAGE_TOOL,
+    icon: ImageIcon,
+  },
 ];
 
 export function ToolEditorDialog({
@@ -485,12 +535,18 @@ export function ToolEditorDialog({
                     example.type === "separator" ? (
                       <DropdownMenuSeparator key={`sep-${index}`} />
                     ) : (
-                      <DropdownMenuItem
-                        key={example.label}
-                        onSelect={() => handleExampleSelect(example.tool)}
-                      >
-                        {example.label}
-                      </DropdownMenuItem>
+                      (() => {
+                        const Icon = example.icon;
+                        return (
+                          <DropdownMenuItem
+                            key={example.label}
+                            onSelect={() => handleExampleSelect(example.tool)}
+                          >
+                            <Icon />
+                            {example.label}
+                          </DropdownMenuItem>
+                        );
+                      })()
                     )
                   )}
                 </DropdownMenuContent>
